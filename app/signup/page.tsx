@@ -16,7 +16,10 @@ export default async function Signup({
   const { error } = await searchParams;
   return (
     <main>
-      <h1>rehm</h1>
+      <div style={{ textAlign: "center", margin: "24px 0 28px" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/wordmark-light.svg" alt="rehm" style={{ height: 44, display: "inline-block" }} />
+      </div>
       <p className="muted">Create an account. Invite only.</p>
       {error && <p className="notice">{ERRORS[error] ?? ERRORS.invalid}</p>}
 

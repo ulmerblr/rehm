@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUserId } from "@/lib/session";
 import { getActiveKeyInfo, getTokenTotal, getUserEmail } from "@/lib/queries";
+import Header from "@/app/components/Header";
 import KeyForm from "./KeyForm";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,7 @@ export default async function Settings() {
 
   return (
     <main>
+      <Header />
       <div className="row" style={{ justifyContent: "space-between" }}>
         <h1 style={{ margin: 0 }}>Settings</h1>
         <Link href="/">← Dreams</Link>

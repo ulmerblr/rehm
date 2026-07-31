@@ -14,7 +14,10 @@ export default async function Login({
       : "Email or password is incorrect.";
   return (
     <main>
-      <h1>rehm</h1>
+      <div style={{ textAlign: "center", margin: "24px 0 28px" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/wordmark-light.svg" alt="rehm" style={{ height: 44, display: "inline-block" }} />
+      </div>
       <p className="muted">Sign in.</p>
       {error && <p className="notice">{message}</p>}
       <form method="post" action="/api/auth/login" className="stack" style={{ marginTop: 18 }}>

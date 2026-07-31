@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://rehm.xyzroot.com"),
   title: "rehm",
-  description: "a longitudinal dream study",
+  description: "rehm",
 };
 
 export default function RootLayout({

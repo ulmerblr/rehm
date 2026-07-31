@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUserId } from "@/lib/session";
 import { listTrendRuns, type TrendRun } from "@/lib/queries";
 import ExportButton from "@/app/components/ExportButton";
+import Header from "@/app/components/Header";
 import TrendRunner from "./TrendRunner";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,7 @@ export default async function Trends() {
 
   return (
     <main>
+      <Header />
       <div className="row" style={{ justifyContent: "space-between" }}>
         <h1 style={{ margin: 0 }}>Trends</h1>
         <Link href="/">← Dreams</Link>

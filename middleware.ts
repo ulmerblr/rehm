@@ -19,7 +19,10 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
+  // Gate everything except the auth pages/endpoints, the generated icons, and
+  // static assets (any path with a file extension, and _next). The wordmark SVG
+  // and favicons must be reachable without a session (they render on /login).
   matcher: [
-    "/((?!login|signup|api/auth/login|api/auth/signup|_next/static|_next/image|favicon.ico).*)",
+    "/((?!login|signup|icon|apple-icon|api/auth/login|api/auth/signup|_next|.*\\.).*)",
   ],
 };

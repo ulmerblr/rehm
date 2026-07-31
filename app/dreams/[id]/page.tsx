@@ -4,6 +4,7 @@ import { requireUserId } from "@/lib/session";
 import { getDream, getRestatementState, getAnalyses } from "@/lib/queries";
 import ExportButton from "@/app/components/ExportButton";
 import RestatementLoop from "@/app/components/RestatementLoop";
+import Header from "@/app/components/Header";
 import DreamActions from "./DreamActions";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +28,7 @@ export default async function DreamPage({
 
   return (
     <main>
+      <Header />
       <div className="row" style={{ justifyContent: "space-between" }}>
         <h1 style={{ margin: 0 }}>Dream {dream.sequenceNo}</h1>
         <Link href="/">← Dreams</Link>

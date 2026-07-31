@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUserId } from "@/lib/session";
 import { listDreams } from "@/lib/queries";
+import Header from "@/app/components/Header";
 
 export const dynamic = "force-dynamic";
 
@@ -10,13 +11,9 @@ export default async function Home() {
 
   return (
     <main>
-      <div className="row" style={{ justifyContent: "space-between" }}>
-        <h1 style={{ margin: 0 }}>rehm</h1>
-        <Link href="/settings">Settings</Link>
-      </div>
-      <p className="muted">a longitudinal dream study</p>
+      <Header right={<Link href="/settings">Settings</Link>} />
 
-      <div style={{ margin: "22px 0" }}>
+      <div style={{ margin: "8px 0 22px" }}>
         <Link href="/record" className="btn btn-primary btn-block btn-lg">
           Record a dream
         </Link>

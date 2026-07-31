@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUserId } from "@/lib/session";
 import { nextSequenceNo } from "@/lib/queries";
+import Header from "@/app/components/Header";
 import RecordFlow from "./RecordFlow";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,7 @@ export default async function Record() {
 
   return (
     <main>
+      <Header />
       <div className="row" style={{ justifyContent: "space-between" }}>
         <h1 style={{ margin: 0 }}>Record</h1>
         <Link href="/">← Dreams</Link>
