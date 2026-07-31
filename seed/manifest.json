@@ -1,0 +1,18 @@
+{
+  "note": "Seed metadata. Raw transcripts and restatements live verbatim in the paired .txt files; only non-text metadata lives here. user_id is a synthetic study-subject id (no users table yet) — change it here if you have a canonical one; it is safe to change before the seed is run.",
+  "user_id": "fdca5d25-96e9-40e9-b260-0e26bced492c",
+  "capture_method": "voice-chatgpt-thread",
+  "restatement_model": "gpt-imported",
+  "restatement_prompt_version": "none-recorded",
+  "dreams": [
+    { "sequence_no": 1, "raw": "raw/01.txt", "restatement": "restatements/01.txt", "dreamt_on": null },
+    { "sequence_no": 2, "raw": "raw/02.txt", "restatement": "restatements/02.txt", "dreamt_on": null },
+    { "sequence_no": 3, "raw": "raw/03.txt", "restatement": "restatements/03.txt", "dreamt_on": null },
+    { "sequence_no": 4, "raw": "raw/04.txt", "restatement": "restatements/04.txt", "dreamt_on": null },
+    { "sequence_no": 5, "raw": "raw/05.txt", "restatement": "restatements/05.txt", "dreamt_on": null },
+    { "sequence_no": 6, "raw": "raw/06.txt", "restatement": "restatements/06.txt", "dreamt_on": null },
+    { "sequence_no": 7, "raw": "raw/07.txt", "restatement": "restatements/07.txt", "dreamt_on": null },
+    { "sequence_no": 8, "raw": "raw/08.txt", "restatement": "restatements/08.txt", "dreamt_on": null },
+    { "sequence_no": 9, "raw": "raw/09.txt", "restatement": "restatements/09.txt", "dreamt_on": null }
+  ]
+}
