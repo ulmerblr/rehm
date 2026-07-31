@@ -46,16 +46,47 @@ in the environment. The shared logic is `scripts/seed.mjs`.
 - Gated by an admin token: send `Authorization: Bearer $SEED_TOKEN` (set
   `SEED_TOKEN` in the Vercel env). The route also refuses to run unless
   `current_user` is `rehm_app`.
+- **Fail-closed and once-only.** The route refuses with **409** if the subject's
+  corpus already has any dream — it seeds an empty corpus once, never appends
+  (a repeated or modified POST would permanently pollute a table the app role
+  cannot delete from). Once the seed is confirmed, **the route is deleted and
+  `SEED_TOKEN` removed from the env** in the same pass.
 - `dreamt_on` is required for all nine; the seed refuses a null/invalid date.
 - Idempotent via **DO NOTHING**, never upsert (upsert needs `UPDATE`, which the
-  app role lacks): `dreams` uses `ON CONFLICT (user_id, sequence_no) DO NOTHING`;
-  a restatement is inserted only when none exists for that `(dream_id, model,
-  prompt_version)`, so a re-run after a partial failure neither duplicates nor
-  drops one.
+  app role lacks).
 
-After seeding, the next milestone is a read-only, auth-gated **journal**
-(`/dreams`, `/dreams/[id]`) — the raw-vs-restatement fidelity view — before any
-capture or LLM work.
+**Byte fidelity is verified end to end** — the file→column path (file write,
+git, output-file tracing, decode, driver binding) is checked, not assumed:
+
+1. Each file's `sha256` + byte length is recorded in `seed/manifest.json` when
+   the transcript is written.
+2. At seed time the file is read as a raw `Buffer`, hashed, and compared to the
+   manifest; **any mismatch aborts the whole seed before any insert**.
+3. Text is decoded explicitly as utf8 at the insert boundary.
+4. After insert, the stored text is read back, re-encoded, re-hashed, and
+   compared again. The response returns the full table per file: `sequence_no`,
+   byte length, expected hash, on-disk hash, read-back hash, PASS/FAIL. A
+   read-back failure returns HTTP 500 so it is never mistaken for success.
+
+## Access gating
+
+These are private dream transcripts: **no route serves `raw_transcript`
+unauthenticated, ever** — including in development and preview deployments.
+Until native auth lands, protected routes use one server-side primitive
+(`lib/gate.ts`, bearer token vs a server-only env secret — never client-side
+redirect gating):
+
+- `POST /api/seed` — gated by `SEED_TOKEN` (write; removed after seeding).
+- The journal (`/dreams`, `/dreams/[id]`, next milestone) will use the same
+  server-side check with a **persistent** view secret (exchanged for a signed,
+  httpOnly cookie for browser navigation) — not `SEED_TOKEN`, which is deleted
+  after the seed.
+
+When SSO lands it **replaces** this gate; it does not run as a second path
+alongside it.
+
+After seeding, the next milestone is that read-only journal — the
+raw-vs-restatement fidelity view — before any capture or LLM work.
 
 ## What "immutable" means here
 
