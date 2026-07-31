@@ -8,11 +8,15 @@ export default async function Login({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
+  const message =
+    error === "config"
+      ? "The site isn't fully configured yet. Please try again shortly."
+      : "Email or password is incorrect.";
   return (
     <main>
       <h1>rehm</h1>
       <p className="muted">Sign in.</p>
-      {error && <p className="notice">Email or password is incorrect.</p>}
+      {error && <p className="notice">{message}</p>}
       <form method="post" action="/api/auth/login" className="stack" style={{ marginTop: 18 }}>
         <div>
           <label htmlFor="email">Email</label>

@@ -6,6 +6,8 @@ const ERRORS: Record<string, string> = {
   email: "Enter a valid email address.",
   password: "Password must be at least 8 characters.",
   exists: "An account with that email already exists.",
+  config: "The site isn't fully configured yet. Please try again shortly.",
+  server: "Something went wrong. If this persists, the database may not be set up yet.",
 };
 
 export default async function Signup({
