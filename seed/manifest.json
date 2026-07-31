@@ -1,5 +1,5 @@
 {
-  "note": "Seed metadata. Raw transcripts and restatements live verbatim in the paired .txt files; only non-text metadata lives here. user_id is a synthetic study-subject id (no users table yet) — change it here if you have a canonical one; it is safe to change before the seed is run.",
+  "note": "Seed metadata. Raw transcripts and restatements live verbatim in the paired .txt files; only non-text metadata lives here. dreamt_on is REQUIRED for every dream (YYYY-MM-DD) — the seed refuses to run with a null/invalid date, because dreams is append-only and a missing date can never be backfilled. user_id is a PERMANENT study-subject id, decoupled from auth: SSO/login identity maps to this subject id at the application layer; dreams.user_id is the subject, not the login. It cannot be re-pointed later without the owner credential, so change it here (before seeding) only if you have a canonical subject id.",
   "user_id": "fdca5d25-96e9-40e9-b260-0e26bced492c",
   "capture_method": "voice-chatgpt-thread",
   "restatement_model": "gpt-imported",

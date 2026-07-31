@@ -21,6 +21,42 @@ credential. See `migrations/OWNER_ROLE.md` for the owner-pin mechanism.
 - `npm run verify` — prove the append-only model. Runs as **`rehm_app`** over a
   real connection; refuses to run as the owner.
 
+## Subject identity
+
+`dreams.user_id` (and `user_id` on `trend_runs`, `concepts`, `tagging_runs`) is
+a **permanent study-subject id**, decoupled from authentication. When native
+login and hub SSO arrive, the SSO/login identity maps to a subject id **at the
+application layer** — `dreams.user_id` is the *subject*, not the login. Seeded
+rows carry a subject id that cannot be re-pointed to an SSO user id without the
+owner credential, so the subject id is treated as canonical from the seed on.
+
+## Seeding
+
+The seed imports 9 raw transcripts into `dreams` and 9 ChatGPT restatements
+into `restatements` (`model='gpt-imported'`, `prompt_version='none-recorded'`).
+Transcripts live **verbatim** in `seed/raw/NN.txt` and `seed/restatements/NN.txt`;
+metadata (subject `user_id`, per-dream `dreamt_on`, `capture_method`) lives in
+`seed/manifest.json`. Text is never embedded in SQL — that is where byte
+fidelity is lost.
+
+Because there is no local dev machine, the seed runs **server-side on Vercel**
+as an admin route, `POST /api/seed`, using the `rehm_app` `DATABASE_URL` already
+in the environment. The shared logic is `scripts/seed.mjs`.
+
+- Gated by an admin token: send `Authorization: Bearer $SEED_TOKEN` (set
+  `SEED_TOKEN` in the Vercel env). The route also refuses to run unless
+  `current_user` is `rehm_app`.
+- `dreamt_on` is required for all nine; the seed refuses a null/invalid date.
+- Idempotent via **DO NOTHING**, never upsert (upsert needs `UPDATE`, which the
+  app role lacks): `dreams` uses `ON CONFLICT (user_id, sequence_no) DO NOTHING`;
+  a restatement is inserted only when none exists for that `(dream_id, model,
+  prompt_version)`, so a re-run after a partial failure neither duplicates nor
+  drops one.
+
+After seeding, the next milestone is a read-only, auth-gated **journal**
+(`/dreams`, `/dreams/[id]`) — the raw-vs-restatement fidelity view — before any
+capture or LLM work.
+
 ## What "immutable" means here
 
 The immutability guarantee is about the **running application**, not the

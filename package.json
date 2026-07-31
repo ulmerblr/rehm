@@ -7,8 +7,7 @@
     "build": "next build",
     "start": "next start",
     "migrate": "node scripts/migrate.mjs",
-    "verify": "node scripts/verify.mjs",
-    "seed": "node scripts/seed.mjs"
+    "verify": "node scripts/verify.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "1.1.0",
