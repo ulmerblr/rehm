@@ -4,12 +4,8 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
-  const required = [
-    "DATABASE_URL",
-    "APP_ENCRYPTION_KEY",
-    "SESSION_SECRET",
-    "SIGNUP_CODE",
-  ];
+  // SIGNUP_CODE is a committed constant (lib/config.ts), not an env secret.
+  const required = ["DATABASE_URL", "APP_ENCRYPTION_KEY", "SESSION_SECRET"];
   const missing = required.filter((k) => !process.env[k]);
 
   if (missing.length > 0) {

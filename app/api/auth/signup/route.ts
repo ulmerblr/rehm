@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getSql } from "@/lib/db";
+import { SIGNUP_CODE } from "@/lib/config";
 import {
   SESSION_COOKIE,
   SESSION_MAX_AGE,
@@ -24,9 +25,7 @@ function clientIp(req: NextRequest): string {
 }
 
 export async function POST(req: NextRequest) {
-  const missing = ["DATABASE_URL", "SESSION_SECRET", "SIGNUP_CODE"].filter(
-    (k) => !process.env[k]
-  );
+  const missing = ["DATABASE_URL", "SESSION_SECRET"].filter((k) => !process.env[k]);
   if (missing.length > 0) {
     console.error("signup misconfigured — missing env:", missing.join(", "));
     return back(req, "config");
@@ -57,7 +56,7 @@ export async function POST(req: NextRequest) {
     // Invite code: constant-time, checked before any user row is created. A
     // wrong code returns the same generic failure as any other signup error —
     // it does not reveal that the code was the problem.
-    if (!timingSafeEqualStr(code, process.env.SIGNUP_CODE ?? "")) return back(req, "invalid");
+    if (!timingSafeEqualStr(code, SIGNUP_CODE)) return back(req, "invalid");
     if (!EMAIL_RE.test(email)) return back(req, "invalid");
     if (password.length < 8) return back(req, "invalid");
 
