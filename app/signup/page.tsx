@@ -3,9 +3,7 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 const ERRORS: Record<string, string> = {
-  email: "Enter a valid email address.",
-  password: "Password must be at least 8 characters.",
-  exists: "An account with that email already exists.",
+  invalid: "Sign-up failed. Check your email, password, and invite code, then try again.",
   config: "The site isn't fully configured yet. Please try again shortly.",
   server: "Something went wrong. If this persists, the database may not be set up yet.",
 };
@@ -19,13 +17,17 @@ export default async function Signup({
   return (
     <main>
       <h1>rehm</h1>
-      <p className="muted">Create an account.</p>
-      {error && <p className="notice">{ERRORS[error] ?? "Something went wrong."}</p>}
+      <p className="muted">Create an account. Invite only.</p>
+      {error && <p className="notice">{ERRORS[error] ?? ERRORS.invalid}</p>}
 
       <form method="post" action="/api/auth/signup" className="stack" style={{ marginTop: 18 }}>
         <div>
+          <label htmlFor="code">Invite code</label>
+          <input id="code" type="text" name="code" autoComplete="off" required />
+        </div>
+        <div>
           <label htmlFor="email">Email</label>
-          <input id="email" type="text" name="email" autoComplete="email" inputMode="email" />
+          <input id="email" type="text" name="email" autoComplete="email" inputMode="email" required />
         </div>
 
         {/* Honesty notice — plain on the page, directly above the password field. */}
@@ -40,8 +42,15 @@ export default async function Signup({
         </p>
 
         <div>
-          <label htmlFor="password">Password</label>
-          <input id="password" type="password" name="password" autoComplete="new-password" />
+          <label htmlFor="password">Password (at least 8 characters)</label>
+          <input
+            id="password"
+            type="password"
+            name="password"
+            autoComplete="new-password"
+            minLength={8}
+            required
+          />
         </div>
         <button className="btn btn-primary btn-block btn-lg" type="submit">
           Create account

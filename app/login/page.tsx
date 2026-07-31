@@ -30,7 +30,13 @@ export default async function Login({
           Sign in
         </button>
       </form>
-      <p style={{ marginTop: 18 }}>
+
+      <p className="muted" style={{ marginTop: 18, fontSize: "0.95rem" }}>
+        There is no password reset. rehm has no email layer and no operator recovery path, so a
+        forgotten password means the account — and its dreams — are gone for good. Keep your
+        password somewhere safe.
+      </p>
+      <p style={{ marginTop: 14 }}>
         New here? <Link href="/signup">Create an account</Link>
       </p>
     </main>
