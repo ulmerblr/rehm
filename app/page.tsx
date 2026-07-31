@@ -1,14 +1,19 @@
 import Link from "next/link";
+import { requireUserId } from "@/lib/session";
 import { listDreams } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const dreams = await listDreams();
+  const userId = await requireUserId();
+  const dreams = await listDreams(userId);
 
   return (
     <main>
-      <h1>rehm</h1>
+      <div className="row" style={{ justifyContent: "space-between" }}>
+        <h1 style={{ margin: 0 }}>rehm</h1>
+        <Link href="/settings">Settings</Link>
+      </div>
       <p className="muted">a longitudinal dream study</p>
 
       <div style={{ margin: "22px 0" }}>

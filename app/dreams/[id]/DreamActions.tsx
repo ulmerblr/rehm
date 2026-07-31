@@ -14,7 +14,7 @@ export default function DreamActions({ dreamId }: { dreamId: string }) {
     try {
       const res = await fetch(`/api/dreams/${dreamId}/analyze`, { method: "POST" });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || `failed (${res.status})`);
+      if (!res.ok) throw new Error(data?.message || data?.error || `failed (${res.status})`);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "failed");

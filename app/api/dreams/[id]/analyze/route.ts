@@ -1,51 +1,69 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSql } from "@/lib/db";
-import { getAnthropic, textOf } from "@/lib/anthropic";
-import { SUBJECT_ID, MODEL } from "@/lib/config";
+import { textOf, usageOf } from "@/lib/anthropic";
+import { MODEL } from "@/lib/config";
 import { ANALYSIS_PROMPT, ANALYSIS_PROMPT_VERSION } from "@/lib/prompts";
+import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { getUserAnthropic, markKeyVerified } from "@/lib/keys";
+import { userFacingAnthropicError } from "@/lib/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Blind analysis generated from the raw transcript ONLY — not the restatement,
-// not prior dreams, not prior analyses, not any theme vocabulary. Re-runnable:
-// a new row every time, never overwriting. Stored with blind = true.
+// Blind analysis from the raw transcript ONLY. Re-runnable; new row each time.
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const userId = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
+  if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   const { id: dreamId } = await params;
   const sql = getSql();
 
   const rows = (await sql`
-    SELECT raw_transcript FROM dreams
-    WHERE id = ${dreamId} AND user_id = ${SUBJECT_ID}
+    SELECT raw_transcript FROM dreams WHERE id = ${dreamId} AND user_id = ${userId}
   `) as Array<{ raw_transcript: string }>;
-  if (rows.length === 0) {
-    return NextResponse.json({ error: "not found" }, { status: 404 });
-  }
+  if (rows.length === 0) return NextResponse.json({ error: "not found" }, { status: 404 });
   const raw = rows[0].raw_transcript;
 
-  const client = getAnthropic();
-  const message = await client.messages.create({
-    model: MODEL,
-    max_tokens: 16000,
-    system: ANALYSIS_PROMPT,
-    messages: [{ role: "user", content: raw }],
-  });
-  if (message.stop_reason === "refusal") {
-    return NextResponse.json({ error: "model declined the request" }, { status: 502 });
+  const got = await getUserAnthropic(userId);
+  if ("error" in got) {
+    return NextResponse.json(
+      { error: "no_key", message: "Add your Anthropic API key in Settings to run an analysis." },
+      { status: 400 }
+    );
   }
-  const analysis = textOf(message);
-  if (!analysis) {
-    return NextResponse.json({ error: "empty analysis" }, { status: 502 });
+
+  let analysis: string;
+  let usage: { input: number; output: number };
+  try {
+    const message = await got.client.messages.create({
+      model: MODEL,
+      max_tokens: 16000,
+      system: ANALYSIS_PROMPT,
+      messages: [{ role: "user", content: raw }],
+    });
+    if (message.stop_reason === "refusal") {
+      return NextResponse.json(
+        { error: "refusal", message: "The model declined this request." },
+        { status: 502 }
+      );
+    }
+    analysis = textOf(message);
+    usage = usageOf(message);
+    if (!analysis) throw new Error("empty");
+  } catch (err) {
+    const m = userFacingAnthropicError(err);
+    return NextResponse.json({ error: "llm", message: m.message }, { status: m.status });
   }
 
   const [row] = (await sql`
-    INSERT INTO analyses (dream_id, body, model, prompt_version, blind)
-    VALUES (${dreamId}, ${analysis}, ${MODEL}, ${ANALYSIS_PROMPT_VERSION}, true)
+    INSERT INTO analyses (dream_id, body, model, prompt_version, blind, input_tokens, output_tokens)
+    VALUES (${dreamId}, ${analysis}, ${MODEL}, ${ANALYSIS_PROMPT_VERSION}, true, ${usage.input}, ${usage.output})
     RETURNING id
   `) as Array<{ id: string }>;
+  await markKeyVerified(got.keyId);
 
-  return NextResponse.json({ id: row.id, body: analysis });
+  return NextResponse.json({ id: row.id });
 }

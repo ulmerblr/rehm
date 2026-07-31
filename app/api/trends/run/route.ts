@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSql } from "@/lib/db";
-import { getAnthropic, textOf } from "@/lib/anthropic";
-import { SUBJECT_ID, MODEL } from "@/lib/config";
+import { textOf, usageOf } from "@/lib/anthropic";
+import { MODEL } from "@/lib/config";
 import { TREND_PROMPT, TREND_PROMPT_VERSION } from "@/lib/prompts";
+import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { getUserAnthropic, markKeyVerified } from "@/lib/keys";
+import { userFacingAnthropicError } from "@/lib/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,86 +31,91 @@ const SCHEMA = {
   required: ["summary", "claims"],
 } as const;
 
-// Reads every raw transcript, runs one pass over the whole corpus, and writes a
-// trend_run plus trend_claims. Every claim must cite the dreams it rests on; a
-// claim that cites nothing is dropped (the DB CHECK also enforces non-empty).
-// Prior trend runs are never touched.
-export async function POST(_req: NextRequest) {
-  const sql = getSql();
+// One pass over the session user's whole corpus. Every claim must cite the
+// dreams it rests on; claims without citations are dropped (the DB CHECK also
+// enforces non-empty). Prior runs are never touched.
+export async function POST(req: NextRequest) {
+  const userId = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
+  if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
+  const sql = getSql();
   const dreamRows = (await sql`
     SELECT id, sequence_no, dreamt_on, raw_transcript
-    FROM dreams WHERE user_id = ${SUBJECT_ID}
-    ORDER BY sequence_no ASC
-  `) as Array<{
-    id: string;
-    sequence_no: number;
-    dreamt_on: unknown;
-    raw_transcript: string;
-  }>;
+    FROM dreams WHERE user_id = ${userId} ORDER BY sequence_no ASC
+  `) as Array<{ id: string; sequence_no: number; dreamt_on: unknown; raw_transcript: string }>;
 
   const corpusSize = dreamRows.length;
   if (corpusSize === 0) {
-    return NextResponse.json({ error: "no dreams to analyze" }, { status: 400 });
+    return NextResponse.json({ error: "no_dreams", message: "Record a dream first." }, { status: 400 });
   }
 
-  // seq -> uuid, for mapping cited dream numbers back to real ids.
   const idBySeq = new Map<number, string>();
   const corpusText = dreamRows
     .map((d) => {
       const seq = Number(d.sequence_no);
       idBySeq.set(seq, String(d.id));
       const date =
-        d.dreamt_on instanceof Date
-          ? d.dreamt_on.toISOString().slice(0, 10)
-          : String(d.dreamt_on ?? "");
+        d.dreamt_on instanceof Date ? d.dreamt_on.toISOString().slice(0, 10) : String(d.dreamt_on ?? "");
       return `Dream ${seq} (${date}):\n${d.raw_transcript}`;
     })
     .join("\n\n---\n\n");
 
-  const client = getAnthropic();
-  const message = await client.messages.create({
-    model: MODEL,
-    max_tokens: 16000,
-    system: TREND_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: `Here is the full corpus of ${corpusSize} dream(s). Identify trends across them, citing dream numbers for every claim.\n\n${corpusText}`,
-      },
-    ],
-    output_config: { format: { type: "json_schema", schema: SCHEMA } },
-  });
-  if (message.stop_reason === "refusal") {
-    return NextResponse.json({ error: "model declined the request" }, { status: 502 });
+  const got = await getUserAnthropic(userId);
+  if ("error" in got) {
+    return NextResponse.json(
+      { error: "no_key", message: "Add your Anthropic API key in Settings to run a trend pass." },
+      { status: 400 }
+    );
   }
 
-  let parsed: { summary?: string; claims?: Array<{ claim?: string; dream_numbers?: number[] }> };
+  let summary = "";
+  let claims: Array<{ claim: string; dreamIds: string[] }> = [];
+  let usage: { input: number; output: number };
   try {
-    parsed = JSON.parse(textOf(message));
-  } catch {
-    return NextResponse.json({ error: "could not parse trend output" }, { status: 502 });
-  }
-
-  const summary = typeof parsed.summary === "string" ? parsed.summary : "";
-
-  // Keep only claims that cite at least one real dream in this corpus.
-  const claims = (parsed.claims ?? [])
-    .map((c) => {
-      const ids = Array.from(
-        new Set(
-          (c.dream_numbers ?? [])
-            .map((n) => idBySeq.get(Number(n)))
-            .filter((id): id is string => typeof id === "string")
-        )
+    const message = await got.client.messages.create({
+      model: MODEL,
+      max_tokens: 16000,
+      system: TREND_PROMPT,
+      messages: [
+        {
+          role: "user",
+          content: `Here is the full corpus of ${corpusSize} dream(s). Identify trends across them, citing dream numbers for every claim.\n\n${corpusText}`,
+        },
+      ],
+      output_config: { format: { type: "json_schema", schema: SCHEMA } },
+    });
+    if (message.stop_reason === "refusal") {
+      return NextResponse.json(
+        { error: "refusal", message: "The model declined this request." },
+        { status: 502 }
       );
-      return { claim: (c.claim ?? "").trim(), dreamIds: ids };
-    })
-    .filter((c) => c.claim.length > 0 && c.dreamIds.length > 0);
+    }
+    usage = usageOf(message);
+    const parsed = JSON.parse(textOf(message)) as {
+      summary?: string;
+      claims?: Array<{ claim?: string; dream_numbers?: number[] }>;
+    };
+    summary = typeof parsed.summary === "string" ? parsed.summary : "";
+    claims = (parsed.claims ?? [])
+      .map((c) => ({
+        claim: (c.claim ?? "").trim(),
+        dreamIds: Array.from(
+          new Set(
+            (c.dream_numbers ?? [])
+              .map((n) => idBySeq.get(Number(n)))
+              .filter((id): id is string => typeof id === "string")
+          )
+        ),
+      }))
+      .filter((c) => c.claim.length > 0 && c.dreamIds.length > 0);
+  } catch (err) {
+    const m = userFacingAnthropicError(err);
+    return NextResponse.json({ error: "llm", message: m.message }, { status: m.status });
+  }
 
   const [run] = (await sql`
-    INSERT INTO trend_runs (user_id, corpus_size, model, prompt_version, body)
-    VALUES (${SUBJECT_ID}, ${corpusSize}, ${MODEL}, ${TREND_PROMPT_VERSION}, ${summary})
+    INSERT INTO trend_runs (user_id, corpus_size, model, prompt_version, body, input_tokens, output_tokens)
+    VALUES (${userId}, ${corpusSize}, ${MODEL}, ${TREND_PROMPT_VERSION}, ${summary}, ${usage.input}, ${usage.output})
     RETURNING id
   `) as Array<{ id: string }>;
 
@@ -117,10 +125,7 @@ export async function POST(_req: NextRequest) {
       VALUES (${run.id}, ${c.claim}, ${c.dreamIds}::uuid[])
     `;
   }
+  await markKeyVerified(got.keyId);
 
-  return NextResponse.json({
-    id: run.id,
-    corpusSize,
-    claimsWritten: claims.length,
-  });
+  return NextResponse.json({ id: run.id, corpusSize, claimsWritten: claims.length });
 }

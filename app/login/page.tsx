@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export const dynamic = "force-dynamic";
 
 export default async function Login({
@@ -9,21 +11,24 @@ export default async function Login({
   return (
     <main>
       <h1>rehm</h1>
-      <p className="muted">Enter the access token to continue.</p>
-      {error && <p className="notice">Incorrect token.</p>}
-      <form method="post" action="/api/gate" className="stack" style={{ marginTop: 20 }}>
-        <input
-          type="password"
-          name="token"
-          autoFocus
-          autoComplete="current-password"
-          aria-label="Access token"
-          placeholder="Access token"
-        />
+      <p className="muted">Sign in.</p>
+      {error && <p className="notice">Email or password is incorrect.</p>}
+      <form method="post" action="/api/auth/login" className="stack" style={{ marginTop: 18 }}>
+        <div>
+          <label htmlFor="email">Email</label>
+          <input id="email" type="text" name="email" autoComplete="email" inputMode="email" />
+        </div>
+        <div>
+          <label htmlFor="password">Password</label>
+          <input id="password" type="password" name="password" autoComplete="current-password" />
+        </div>
         <button className="btn btn-primary btn-block btn-lg" type="submit">
-          Enter
+          Sign in
         </button>
       </form>
+      <p style={{ marginTop: 18 }}>
+        New here? <Link href="/signup">Create an account</Link>
+      </p>
     </main>
   );
 }

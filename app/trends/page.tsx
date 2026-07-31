@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireUserId } from "@/lib/session";
 import { listTrendRuns, type TrendRun } from "@/lib/queries";
 import ExportButton from "@/app/components/ExportButton";
 import TrendRunner from "./TrendRunner";
@@ -6,7 +7,8 @@ import TrendRunner from "./TrendRunner";
 export const dynamic = "force-dynamic";
 
 export default async function Trends() {
-  const runs = await listTrendRuns();
+  const userId = await requireUserId();
+  const runs = await listTrendRuns(userId);
 
   return (
     <main>
@@ -15,7 +17,7 @@ export default async function Trends() {
         <Link href="/">← Dreams</Link>
       </div>
       <p className="muted">
-        One pass over the whole corpus. Every claim cites the dreams it rests on. Past runs are
+        One pass over your whole corpus. Every claim cites the dreams it rests on. Past runs are
         kept and never overwritten.
       </p>
 

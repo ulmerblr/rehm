@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getDream, getAcceptedRestatement, getAnalyses } from "@/lib/queries";
+import { requireUserId } from "@/lib/session";
+import { getDream, getRestatementState, getAnalyses } from "@/lib/queries";
 import ExportButton from "@/app/components/ExportButton";
+import RestatementLoop from "@/app/components/RestatementLoop";
 import DreamActions from "./DreamActions";
 
 export const dynamic = "force-dynamic";
@@ -11,16 +13,16 @@ export default async function DreamPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const userId = await requireUserId();
   const { id } = await params;
-  const dream = await getDream(id);
+  const dream = await getDream(id, userId);
   if (!dream) notFound();
 
   const [restatement, analyses] = await Promise.all([
-    getAcceptedRestatement(dream.id),
+    getRestatementState(dream.id),
     getAnalyses(dream.id),
   ]);
 
-  // Plain-text export: raw + loop turns + accepted restatement + analyses.
   const exportText = buildExport(dream, restatement, analyses);
 
   return (
@@ -31,39 +33,55 @@ export default async function DreamPage({
       </div>
       <p className="seq">
         {dream.dreamtOn ?? "no date"}
-        {dream.captureMethod ? <span className="tag" style={{ marginLeft: 10 }}>{dream.captureMethod}</span> : null}
+        {dream.captureMethod ? (
+          <span className="tag" style={{ marginLeft: 10 }}>{dream.captureMethod}</span>
+        ) : null}
       </p>
 
       <h2>Raw transcript</h2>
       <div className="verbatim">{dream.rawTranscript}</div>
 
-      <h2>Accepted restatement</h2>
-      {restatement ? (
-        <div className="card">
-          <div>
-            <span className="tag">model: {restatement.model}</span>
-            <span className="tag">prompt: {restatement.promptVersion}</span>
+      <h2>Restatement</h2>
+      {restatement && restatement.accepted ? (
+        <>
+          <div className="card">
+            <div>
+              <span className="tag">model: {restatement.model}</span>
+              <span className="tag">prompt: {restatement.promptVersion}</span>
+            </div>
+            <p style={{ whiteSpace: "pre-wrap", marginBottom: 0 }}>
+              {restatement.latestProposal}
+            </p>
           </div>
-          <p style={{ whiteSpace: "pre-wrap", marginBottom: 0 }}>{restatement.text}</p>
-        </div>
-      ) : (
-        <p className="muted">Not accepted yet.</p>
-      )}
-
-      {restatement && restatement.turns.length > 0 && (
-        <details style={{ marginTop: 12 }}>
-          <summary>Loop turns ({restatement.turns.length})</summary>
-          <div className="stack" style={{ padding: "8px 0 14px" }}>
-            {restatement.turns.map((t) => (
-              <div key={t.turnNo}>
-                <div className="seq">
-                  {t.turnNo}. {t.role === "proposal" ? "Proposal" : "Objection"}
-                </div>
-                <div style={{ whiteSpace: "pre-wrap" }}>{t.body}</div>
+          {restatement.turns.length > 0 && (
+            <details style={{ marginTop: 12 }}>
+              <summary>Loop turns ({restatement.turns.length})</summary>
+              <div className="stack" style={{ padding: "8px 0 14px" }}>
+                {restatement.turns.map((t) => (
+                  <div key={t.turnNo}>
+                    <div className="seq">
+                      {t.turnNo}. {t.role === "proposal" ? "Proposal" : "Objection"}
+                    </div>
+                    <div style={{ whiteSpace: "pre-wrap" }}>{t.body}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </details>
+            </details>
+          )}
+        </>
+      ) : restatement ? (
+        <>
+          <p className="muted" style={{ marginTop: 0 }}>
+            Not accepted yet — continue the loop until you agree.
+          </p>
+          <RestatementLoop
+            restatementId={restatement.id}
+            dreamId={dream.id}
+            initialProposal={restatement.latestProposal}
+          />
+        </>
+      ) : (
+        <p className="muted">No restatement.</p>
       )}
 
       <h2>Analyses</h2>
@@ -97,7 +115,7 @@ export default async function DreamPage({
 
 function buildExport(
   dream: NonNullable<Awaited<ReturnType<typeof getDream>>>,
-  restatement: Awaited<ReturnType<typeof getAcceptedRestatement>>,
+  restatement: Awaited<ReturnType<typeof getRestatementState>>,
   analyses: Awaited<ReturnType<typeof getAnalyses>>
 ): string {
   const parts: string[] = [];
@@ -106,15 +124,19 @@ function buildExport(
   parts.push("");
   parts.push("RAW TRANSCRIPT");
   parts.push(dream.rawTranscript);
-  if (restatement) {
+  if (restatement && restatement.turns.length > 0) {
     parts.push("");
     parts.push("RESTATEMENT LOOP");
     for (const t of restatement.turns) {
       parts.push(`[${t.turnNo}] ${t.role.toUpperCase()}: ${t.body}`);
     }
+  }
+  if (restatement && restatement.accepted && restatement.latestProposal) {
     parts.push("");
-    parts.push(`ACCEPTED RESTATEMENT (model=${restatement.model}, prompt_version=${restatement.promptVersion})`);
-    parts.push(restatement.text);
+    parts.push(
+      `ACCEPTED RESTATEMENT (model=${restatement.model}, prompt_version=${restatement.promptVersion})`
+    );
+    parts.push(restatement.latestProposal);
   }
   if (analyses.length > 0) {
     parts.push("");

@@ -13,9 +13,14 @@ transcripts are the immutable primary record.
 
 ## Environment variables (Vercel)
 
-- `DATABASE_URL` — the **`rehm_app`** connection string (SELECT/INSERT-scoped app role)
-- `ANTHROPIC_API_KEY` — server-side only; never shipped to the client
-- `VIEW_TOKEN` — the shared access token that gates the whole site (see Access gating)
+- `DATABASE_URL` — the **`rehm_app`** connection string (scoped app role)
+- `APP_ENCRYPTION_KEY` — 32 random bytes, base64 (e.g. `openssl rand -base64 32`).
+  Encrypts each user's Anthropic API key (AES-256-GCM). Rotating it makes stored
+  keys unreadable (users just re-enter theirs).
+- `SESSION_SECRET` — a long random string used to sign session cookies.
+
+There is **no** shared `ANTHROPIC_API_KEY`: each user supplies their own key, and
+their calls are billed to their own Anthropic account (bring-your-own-key).
 
 ## The app
 
@@ -69,22 +74,32 @@ credential. See `migrations/OWNER_ROLE.md` for the owner-pin mechanism.
   to run as `rehm_app`.
 - `npm run verify` — prove the append-only model. Runs as **`rehm_app`**.
 
-## Subject identity
+## Auth, scoping, and bring-your-own-key
 
-`dreams.user_id` (and `user_id` on `trend_runs`, `concepts`, `tagging_runs`) is
-a **permanent study-subject id**, decoupled from authentication (`lib/config.ts`
-→ `SUBJECT_ID`). When native login and hub SSO arrive, the SSO/login identity
-maps to a subject id **at the application layer** — `dreams.user_id` is the
-subject, not the login.
+Native email + password auth (bcrypt, cost 12; passwords are never recoverable).
+`middleware.ts` requires a valid session on every route except the auth pages —
+preview deploys included. The session user id comes from a signed, httpOnly
+cookie verified server-side; **the client's `user_id` is never trusted**, and
+every query is scoped to the session user. A user can only ever read their own
+dreams, restatements, turns, analyses, and trend runs.
 
-## Access gating
+`dreams.user_id`, `trend_runs.user_id`, `concepts.user_id`, and
+`tagging_runs.user_id` are real foreign keys to `users.id`.
 
-These are private dream transcripts: **no route serves `raw_transcript`
-unauthenticated, ever** — including preview deploys. Until native auth lands, the
-whole app sits behind a single shared `VIEW_TOKEN`, entered once at `/login` and
-exchanged for a signed, httpOnly session cookie. `middleware.ts` verifies the
-cookie on every request (server-side only, no client-side redirect gating). When
-SSO lands it **replaces** this gate; it does not run as a second path alongside.
+**No admin surface.** There is no admin role, no operator view, and no route that
+returns another user's data — it is absent, not merely gated.
+
+### Keys
+
+Each user adds their own Anthropic key in Settings. It is verified with one cheap
+call, then stored encrypted (**AES-256-GCM**, `user_api_keys`; ciphertext/iv/auth
+tag as `bytea`) — never plaintext, never logged, never returned. Decryption
+happens server-side inside the request that makes the LLM call. Rotation replaces
+(new active row, old marked inactive). If a key is missing or fails, the action
+is unavailable and the UI says so in plain language — but **capture never depends
+on a key**: the raw transcript is saved first, and the restatement loop is
+resumable from `/dreams/[id]`. Token counts (`input_tokens`, `output_tokens`) are
+stored on every generated row; Settings shows a running per-user total.
 
 ## What "immutable" means here
 
