@@ -4,32 +4,58 @@ import { join } from "node:path";
 import { neon } from "@neondatabase/serverless";
 import { SIGNUP_CODE } from "@/lib/config";
 import { timingSafeEqualStr } from "@/lib/auth";
+import { getSql } from "@/lib/db";
 import { splitStatements } from "@/scripts/_shared.mjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// TEMPORARY migration endpoint. Connects as the OWNER (OWNER_DATABASE_URL —
-// NOT the app's DATABASE_URL) and applies any pending migrations/*.sql in
-// order, tracked in schema_migrations, dollar-quote aware (same logic as the
-// Node runner). Gated by the committed signup code so it's one URL to hit.
-// Delete this route once 0006 has applied.
+// TEMPORARY migration endpoint. Connects as the OWNER — OWNER_DATABASE_URL if
+// set, otherwise POSTGRES_URL (the Neon Vercel integration's owner connection).
+// Applies pending migrations/*.sql in order, tracked in schema_migrations,
+// dollar-quote aware (same logic as the Node runner). Gated by the committed
+// signup code. Also reports which role the APP connects as, so you can see
+// whether role separation is actually in effect. Delete this route once 0006
+// has applied.
 async function run(req: NextRequest) {
   const code = new URL(req.url).searchParams.get("code") ?? "";
   if (!timingSafeEqualStr(code, SIGNUP_CODE)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const ownerUrl = process.env.OWNER_DATABASE_URL;
+  const ownerUrl = process.env.OWNER_DATABASE_URL ?? process.env.POSTGRES_URL;
+  const ownerVia = process.env.OWNER_DATABASE_URL
+    ? "OWNER_DATABASE_URL"
+    : process.env.POSTGRES_URL
+      ? "POSTGRES_URL"
+      : null;
   if (!ownerUrl) {
     return NextResponse.json(
-      { error: "OWNER_DATABASE_URL is not set" },
+      { error: "Neither OWNER_DATABASE_URL nor POSTGRES_URL is set" },
       { status: 500 }
     );
   }
 
+  // Diagnostics: what role does the app run as, and via which env var?
+  const appVia = process.env.DATABASE_URL
+    ? "DATABASE_URL"
+    : process.env.POSTGRES_URL
+      ? "POSTGRES_URL"
+      : "none";
+  let appRole: string | null = null;
+  try {
+    const [row] = (await getSql()`SELECT current_user`) as Array<{ current_user: string }>;
+    appRole = row.current_user;
+  } catch {
+    appRole = null;
+  }
+
   const sql = neon(ownerUrl);
   try {
+    const [{ current_user: ownerRole }] = (await sql`SELECT current_user`) as Array<{
+      current_user: string;
+    }>;
+
     await sql`
       CREATE TABLE IF NOT EXISTS schema_migrations (
         version    text PRIMARY KEY,
@@ -50,8 +76,6 @@ async function run(req: NextRequest) {
 
     const appliedNow: string[] = [];
     for (const file of pending) {
-      // Each file records its own schema_migrations row (last statement), so
-      // running its statements atomically is all that's needed.
       const statements = splitStatements(readFileSync(join(dir, file), "utf8"));
       await sql.transaction(statements.map((s: string) => sql.query(s)));
       appliedNow.push(file);
@@ -59,18 +83,21 @@ async function run(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      alreadyApplied: files.filter((f) => applied.has(f)),
       applied: appliedNow,
+      alreadyApplied: files.filter((f) => applied.has(f)),
+      diagnostics: { ownerVia, ownerRole, appVia, appRole },
     });
   } catch (err) {
-    // Return the database error verbatim so it can be acted on.
     return NextResponse.json(
-      { ok: false, error: err instanceof Error ? err.message : String(err) },
+      {
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+        diagnostics: { ownerVia, appVia, appRole },
+      },
       { status: 500 }
     );
   }
 }
 
 export const POST = run;
-// GET too, so the URL can be opened in a browser.
 export const GET = run;
