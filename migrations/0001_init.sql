@@ -1,19 +1,33 @@
 -- rehm schema — Milestone 3
 --
+-- Apply this in the Neon SQL editor as the OWNER role (the default Neon role
+-- that owns the database). Migration 0002 sets up the separate app role and
+-- referential integrity; run 0001 then 0002 in order.
+--
 -- Conventions:
 --   * Primary keys: uuid, default gen_random_uuid() (built-in, Postgres 13+)
 --   * Timestamps:   timestamptz, default now()
 --   * user_id:      uuid, no FK yet (no users table this milestone; native
 --                   auth + hub SSO arrive later and will supply these ids)
 --
--- Invariants carried from the project notes:
---   * dreams is INSERT-ONLY, enforced at the DB level (REVOKE at the bottom).
+-- Invariants:
+--   * dreams is INSERT-ONLY. Enforced at the DB level via role separation:
+--     the app role (0002) is never granted UPDATE/DELETE on dreams and cannot
+--     grant them to itself. The owner is used only for migrations.
 --   * restatements and analyses are independent SIBLINGS derived from
 --     dreams.raw_transcript — NO foreign key between them in either direction.
 --   * Every derived row carries NOT NULL model + prompt_version.
---   * trend_claims.dream_ids must be non-empty (DB CHECK).
+--   * trend_claims.dream_ids must be non-empty (DB CHECK) and referentially
+--     valid (constraint trigger in 0002).
 
--- Immutable primary record. UPDATE/DELETE revoked from the app role below.
+-- Migration ledger. Created here so an owner running this file in the Neon SQL
+-- editor bootstraps it; the Node runner reads it to avoid reapplying.
+CREATE TABLE IF NOT EXISTS schema_migrations (
+  version    text PRIMARY KEY,
+  applied_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- Immutable primary record. UPDATE/DELETE withheld from the app role in 0002.
 CREATE TABLE dreams (
   id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id        uuid NOT NULL,
@@ -80,11 +94,12 @@ CREATE TABLE concepts (
   CONSTRAINT concepts_user_name_uniq UNIQUE (user_id, name)
 );
 
--- A pass that tags dreams with concepts.
+-- A pass that tags dreams with concepts. corpus_size NOT NULL (matches
+-- trend_runs): the corpus size is what makes a run interpretable later.
 CREATE TABLE tagging_runs (
   id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id        uuid NOT NULL,
-  corpus_size    integer,
+  corpus_size    integer NOT NULL,
   model          text NOT NULL,
   prompt_version text NOT NULL,
   created_at     timestamptz NOT NULL DEFAULT now()
@@ -100,8 +115,7 @@ CREATE TABLE taggings (
 );
 CREATE INDEX taggings_run_idx ON taggings (tagging_run_id);
 
--- Database-level immutability for dreams: the connecting (app) role keeps
--- SELECT + INSERT but loses UPDATE + DELETE. Neon roles are not superusers,
--- so revoking from the owner makes the table append-only even for itself.
-REVOKE UPDATE, DELETE ON dreams FROM CURRENT_USER;
-GRANT SELECT, INSERT ON dreams TO CURRENT_USER;
+-- Record this migration so the Node runner won't reapply it.
+INSERT INTO schema_migrations (version)
+VALUES ('0001_init.sql')
+ON CONFLICT (version) DO NOTHING;

@@ -1,12 +1,18 @@
-// rehm migration runner.
+// rehm migration runner / verifier.
 //
 //   npm run migrate
 //
 // Reads DATABASE_URL from the environment (or from .env.local / .env if
-// present — e.g. after `vercel env pull .env.local`). Applies every
-// migrations/*.sql file that has not yet been recorded in schema_migrations,
-// each atomically, in filename order. Idempotent: already-applied files are
-// skipped. After applying, it runs the dreams immutability proof.
+// present). Records which migrations/*.sql files are already applied (via the
+// schema_migrations rows the files insert themselves) and runs the dreams
+// immutability proof.
+//
+// Apply path: migrations are normally run in the Neon SQL editor as the OWNER
+// role, because DATABASE_URL points at the app role (rehm_app), which has no
+// privilege to create tables or roles. If this runner is pointed at owner
+// credentials it will apply any pending files; pointed at the app role it
+// simply reports status and proves immutability. Either way it never reapplies
+// an already-recorded migration.
 //
 // Never prints the connection string.
 
@@ -47,90 +53,190 @@ if (!process.env.DATABASE_URL) {
 
 if (!process.env.DATABASE_URL) {
   console.error(
-    "DATABASE_URL is not set. Run `vercel env pull .env.local` first, " +
-      "or export DATABASE_URL, then re-run `npm run migrate`."
+    "DATABASE_URL is not set. Set it, or run migrations in the Neon SQL " +
+      "editor as the owner role, then re-run `npm run migrate`."
   );
   process.exit(1);
 }
 
-// Split a .sql file into individual statements. The migration SQL uses no
-// dollar-quoting or semicolons inside string literals, so stripping line
-// comments and splitting on ';' is safe here.
+// Split a .sql file into statements. Aware of single-quoted strings, line and
+// block comments, and dollar-quoted bodies ($$...$$ / $tag$...$tag$) so
+// function/DO bodies containing semicolons stay intact.
 function splitStatements(sql) {
-  return sql
-    .split("\n")
-    .map((line) => {
-      const c = line.indexOf("--");
-      return c === -1 ? line : line.slice(0, c);
-    })
-    .join("\n")
-    .split(";")
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
+  const statements = [];
+  let current = "";
+  let inSingle = false;
+  let dollarTag = null;
+  let inLineComment = false;
+  let inBlockComment = false;
+
+  for (let i = 0; i < sql.length; i++) {
+    const ch = sql[i];
+    const next = sql[i + 1];
+
+    if (inLineComment) {
+      if (ch === "\n") {
+        inLineComment = false;
+        current += ch;
+      }
+      continue;
+    }
+    if (inBlockComment) {
+      if (ch === "*" && next === "/") {
+        inBlockComment = false;
+        i++;
+      }
+      continue;
+    }
+    if (dollarTag) {
+      if (sql.startsWith(dollarTag, i)) {
+        current += dollarTag;
+        i += dollarTag.length - 1;
+        dollarTag = null;
+      } else {
+        current += ch;
+      }
+      continue;
+    }
+    if (inSingle) {
+      current += ch;
+      if (ch === "'") {
+        if (next === "'") {
+          current += next;
+          i++;
+        } else {
+          inSingle = false;
+        }
+      }
+      continue;
+    }
+
+    if (ch === "-" && next === "-") {
+      inLineComment = true;
+      i++;
+      continue;
+    }
+    if (ch === "/" && next === "*") {
+      inBlockComment = true;
+      i++;
+      continue;
+    }
+    if (ch === "'") {
+      inSingle = true;
+      current += ch;
+      continue;
+    }
+    if (ch === "$") {
+      const match = /^\$[A-Za-z_0-9]*\$/.exec(sql.slice(i));
+      if (match) {
+        dollarTag = match[0];
+        current += dollarTag;
+        i += dollarTag.length - 1;
+        continue;
+      }
+    }
+    if (ch === ";") {
+      if (current.trim()) statements.push(current.trim());
+      current = "";
+      continue;
+    }
+    current += ch;
+  }
+  if (current.trim()) statements.push(current.trim());
+  return statements;
 }
 
 async function main() {
   const sql = neon(process.env.DATABASE_URL);
 
-  await sql`
-    CREATE TABLE IF NOT EXISTS schema_migrations (
-      version    text PRIMARY KEY,
-      applied_at timestamptz NOT NULL DEFAULT now()
-    )
-  `;
+  // Bootstrap the ledger if we can (owner path). If we can't (app role), it
+  // was already created by 0001 in the SQL editor.
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS schema_migrations (
+        version    text PRIMARY KEY,
+        applied_at timestamptz NOT NULL DEFAULT now()
+      )
+    `;
+  } catch {
+    // no CREATE privilege — expected for the app role; continue.
+  }
 
-  const applied = new Set(
-    (await sql`SELECT version FROM schema_migrations`).map((r) => r.version)
-  );
+  let applied;
+  try {
+    applied = new Set(
+      (await sql`SELECT version FROM schema_migrations`).map((r) => r.version)
+    );
+  } catch {
+    console.error(
+      "schema_migrations is not readable. Apply 0001 (and 0002) in the Neon " +
+        "SQL editor as the owner role first."
+    );
+    process.exit(1);
+  }
 
   const files = readdirSync(migrationsDir)
     .filter((f) => f.endsWith(".sql"))
     .sort();
 
-  let count = 0;
+  const pending = files.filter((f) => !applied.has(f));
   for (const file of files) {
-    if (applied.has(file)) {
-      console.log(`skip   ${file} (already applied)`);
-      continue;
-    }
+    if (!pending.includes(file)) console.log(`applied  ${file}`);
+  }
+
+  for (const file of pending) {
     const statements = splitStatements(
       readFileSync(join(migrationsDir, file), "utf8")
     );
-    // Apply all statements of a file plus the tracking insert atomically.
-    await sql.transaction([
-      ...statements.map((s) => sql.query(s)),
-      sql`INSERT INTO schema_migrations (version) VALUES (${file})`,
-    ]);
-    console.log(`apply  ${file} (${statements.length} statements)`);
-    count += 1;
+    try {
+      // Each file records its own schema_migrations row, so nothing is
+      // appended here.
+      await sql.transaction(statements.map((s) => sql.query(s)));
+      console.log(`apply    ${file} (${statements.length} statements)`);
+    } catch (err) {
+      console.error(
+        `\nCould not apply ${file}: ${err.message}\n` +
+          "Migrations must be run in the Neon SQL editor as the owner role " +
+          "(the app role cannot create tables or roles)."
+      );
+      process.exit(1);
+    }
   }
 
-  console.log(count === 0 ? "Nothing to apply." : `Applied ${count} migration(s).`);
+  console.log(
+    pending.length === 0
+      ? "All migrations recorded."
+      : `Applied ${pending.length} migration(s).`
+  );
 
   await proveImmutability(sql);
 }
 
-// Confirms the DB rejects writes to dreams. WHERE false guarantees no row is
-// ever touched even if the permission check were somehow absent — the
-// permission check fires before row evaluation, so this throws regardless.
+// Proves, as whatever role DATABASE_URL uses, that dreams is append-only.
+// Meaningful only when run as the app role (rehm_app): the app role must be
+// unable to UPDATE/DELETE dreams and unable to grant itself the privilege.
+// WHERE false guarantees no row is ever touched even if a check were absent.
 async function proveImmutability(sql) {
-  console.log("\n--- dreams immutability proof ---");
-  for (const op of ["UPDATE", "DELETE"]) {
-    const stmt =
-      op === "UPDATE"
-        ? "UPDATE dreams SET capture_method = capture_method WHERE false"
-        : "DELETE FROM dreams WHERE false";
+  console.log("\n--- dreams immutability proof (run as the app role) ---");
+  const attempts = [
+    ["UPDATE", "UPDATE dreams SET capture_method = capture_method WHERE false"],
+    ["DELETE", "DELETE FROM dreams WHERE false"],
+    ["self-GRANT", "GRANT UPDATE ON dreams TO CURRENT_USER"],
+  ];
+  for (const [label, stmt] of attempts) {
     try {
       await sql.query(stmt);
-      console.log(`FAIL  ${op} on dreams was ALLOWED — revoke did not take.`);
+      console.log(
+        `FAIL  ${label} on dreams was ALLOWED — role separation is not in effect.`
+      );
       process.exitCode = 1;
     } catch (err) {
-      console.log(`OK    ${op} on dreams rejected: ${err.message}`);
+      console.log(`OK    ${label} rejected: ${err.message}`);
     }
   }
 }
 
 main().catch((err) => {
-  console.error("Migration failed:", err.message);
+  console.error("migrate failed:", err.message);
   process.exit(1);
 });
