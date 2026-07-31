@@ -1,48 +1,46 @@
--- rehm — Milestone 3 corrections
+-- rehm — Milestone 3 corrections + role hardening
 --
 -- Apply in the Neon SQL editor as the OWNER role, after 0001.
 --
 -- What this does:
---   1. Role separation for dreams immutability. The tables are owned by the
---      owner (migration) role. A separate app role gets SELECT + INSERT on
---      dreams and full DML on every other table — but never UPDATE/DELETE on
---      dreams, and it cannot grant those to itself because it is not the
---      owner. DATABASE_URL points at the app role; the owner credential lives
---      only in the Neon console / SQL editor, never in the app runtime env.
---   2. Referential validation of trend_claims.dream_ids. Arrays take no FK and
---      these ids are model-generated, so a hallucinated uuid would satisfy the
---      non-empty CHECK. A constraint trigger enforces that every element
---      exists in dreams and is owned by the same user as the parent trend_run.
+--   1. Role separation for an append-only architecture. The tables are owned
+--      by the owner (migration) role. A separate app role, rehm_app, gets:
+--        - dreams:          SELECT, INSERT           (immutable primary record)
+--        - derived tables:  SELECT, INSERT, DELETE   (append-only + purge)
+--        - never UPDATE on any table, and it cannot grant itself privileges
+--          because it is not the owner.
+--      DATABASE_URL points at rehm_app; the owner credential lives only in the
+--      Neon SQL editor, never in the app runtime env.
+--   2. Referential validation of trend_claims.dream_ids (constraint trigger).
 --
--- The app role name is `rehm_app` (not a secret). Provision its login +
--- password out of band — in the Neon console, or a one-off
+-- rehm_app MUST be created here, via SQL — never in the Neon console. Console
+-- roles are granted membership in neon_superuser, which can reach tables it
+-- does not own and would void this separation (while the proof might still
+-- print "permission denied"). SQL-created roles get no such membership.
+-- If CREATE ROLE fails for the owner, STOP and report — do not route around it.
+--
+-- rehm_app is created NOLOGIN and carries no secret. Provision its login +
+-- password out of band with an uncommitted statement in the SQL editor:
 --   ALTER ROLE rehm_app WITH LOGIN PASSWORD '...';
--- run manually in the SQL editor (never committed) — then point DATABASE_URL
--- at it. This migration only creates the role (if absent) and sets grants.
+-- then point DATABASE_URL at rehm_app.
 
--- 1a. App role. Created NOLOGIN if it does not already exist; login/password
--- is provisioned separately (see header). If you created it in the console
--- first, this block is a no-op.
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'rehm_app') THEN
-    CREATE ROLE rehm_app NOLOGIN;
-  END IF;
-END
-$$;
+-- 1a. App role — SQL only. No IF NOT EXISTS: if it already exists (e.g. from a
+-- prior partial run, or wrongly created in the console) this errors so the
+-- operator investigates rather than silently accepting a tainted role.
+CREATE ROLE rehm_app NOLOGIN;
 
--- 1b. Let the owner SET ROLE rehm_app to run the immutability proof from the
--- SQL editor. Harmless: the owner can already do anything to its own objects.
-GRANT rehm_app TO CURRENT_USER;
-
--- 1c. Privileges.
+-- 1b. Privileges on existing tables.
 GRANT USAGE ON SCHEMA public TO rehm_app;
 
 -- dreams: read + append only. No UPDATE, no DELETE — ever.
 GRANT SELECT, INSERT ON dreams TO rehm_app;
 
--- Every other domain table: full DML.
-GRANT SELECT, INSERT, UPDATE, DELETE ON
+-- Derived tables: append-only + purge. SELECT, INSERT, DELETE — NO UPDATE.
+-- Discarding a bad run (DELETE) is allowed; editing a record is not. Trend
+-- runs are versioned and never overwritten; restatements/analyses accumulate
+-- per dream; taggings are recomputed as new rows tied to a new tagging_run;
+-- concepts are re-created, not renamed in place.
+GRANT SELECT, INSERT, DELETE ON
   restatements,
   analyses,
   trend_runs,
@@ -54,6 +52,27 @@ TO rehm_app;
 
 -- Migration ledger: read only. The app must never rewrite migration history.
 GRANT SELECT ON schema_migrations TO rehm_app;
+
+-- Defensive, auditable statement of the append-only architecture: rehm_app
+-- holds UPDATE on nothing. (No-ops where UPDATE was never granted above.)
+REVOKE UPDATE ON
+  dreams,
+  restatements,
+  analyses,
+  trend_runs,
+  trend_claims,
+  concepts,
+  tagging_runs,
+  taggings
+FROM rehm_app;
+
+-- 1c. Future tables created by the owner inherit the same append-only grants
+-- (SELECT, INSERT, DELETE — no UPDATE). FOR ROLE is omitted, so this targets
+-- the owner running this migration. dreams keeps SELECT + INSERT only via its
+-- explicit grant above; future migrations must not issue blanket grants that
+-- re-open dreams to UPDATE/DELETE.
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT SELECT, INSERT, DELETE ON TABLES TO rehm_app;
 
 -- 2. Referential validation for trend_claims.dream_ids. The non-empty CHECK
 -- from 0001 stays as-is; this adds existence + ownership checks per element.

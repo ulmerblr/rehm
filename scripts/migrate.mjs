@@ -212,26 +212,86 @@ async function main() {
   await proveImmutability(sql);
 }
 
-// Proves, as whatever role DATABASE_URL uses, that dreams is append-only.
-// Meaningful only when run as the app role (rehm_app): the app role must be
-// unable to UPDATE/DELETE dreams and unable to grant itself the privilege.
-// WHERE false guarantees no row is ever touched even if a check were absent.
+// Proves, as whatever role DATABASE_URL uses, the append-only model.
+// Meaningful only when run as the app role (rehm_app) over a real connection:
+// point DATABASE_URL at rehm_app (do NOT use SET ROLE from the owner — that
+// skips the real connection/password path). WHERE false guarantees no row is
+// ever touched even if a check were absent.
 async function proveImmutability(sql) {
-  console.log("\n--- dreams immutability proof (run as the app role) ---");
-  const attempts = [
-    ["UPDATE", "UPDATE dreams SET capture_method = capture_method WHERE false"],
-    ["DELETE", "DELETE FROM dreams WHERE false"],
-    ["self-GRANT", "GRANT UPDATE ON dreams TO CURRENT_USER"],
+  // Role hardening check (correction #1). A SQL-created role must not be a
+  // superuser, must not bypass RLS, and must not be a member of neon_superuser
+  // (which could reach tables it does not own and void the separation).
+  console.log("\n--- rehm_app role hardening ---");
+  try {
+    const [role] = await sql`
+      SELECT r.rolname, r.rolsuper, r.rolbypassrls,
+             ARRAY(SELECT g.rolname FROM pg_auth_members m
+                   JOIN pg_roles g ON g.oid = m.roleid
+                   WHERE m.member = r.oid) AS memberof
+      FROM pg_roles r WHERE r.rolname = 'rehm_app'
+    `;
+    if (!role) {
+      console.log("WARN  rehm_app not found — apply 0002 as the owner first.");
+    } else {
+      const memberof = role.memberof ?? [];
+      console.log(
+        `      rolname=${role.rolname} rolsuper=${role.rolsuper} ` +
+          `rolbypassrls=${role.rolbypassrls} memberof={${memberof.join(", ")}}`
+      );
+      if (role.rolsuper || role.rolbypassrls || memberof.includes("neon_superuser")) {
+        console.log(
+          "FAIL  rehm_app is over-privileged (superuser / bypassrls / " +
+            "neon_superuser). Immutability guarantee is void — revoke and re-run."
+        );
+        process.exitCode = 1;
+      } else {
+        console.log("OK    rehm_app is not superuser, no bypassrls, no neon_superuser.");
+      }
+    }
+  } catch (err) {
+    console.log(`WARN  could not read role metadata: ${err.message}`);
+  }
+
+  // Writes that must be REJECTED.
+  console.log("\n--- writes that must be rejected ---");
+  const rejected = [
+    ["UPDATE dreams", "UPDATE dreams SET capture_method = capture_method WHERE false"],
+    ["DELETE dreams", "DELETE FROM dreams WHERE false"],
+    ["self-GRANT dreams", "GRANT UPDATE ON dreams TO CURRENT_USER"],
+    ["UPDATE analyses", "UPDATE analyses SET body = body WHERE false"],
   ];
-  for (const [label, stmt] of attempts) {
+  for (const [label, stmt] of rejected) {
     try {
       await sql.query(stmt);
-      console.log(
-        `FAIL  ${label} on dreams was ALLOWED — role separation is not in effect.`
-      );
+      console.log(`FAIL  ${label} was ALLOWED — append-only model is not in effect.`);
       process.exitCode = 1;
     } catch (err) {
       console.log(`OK    ${label} rejected: ${err.message}`);
+    }
+  }
+
+  // INSERT into analyses must be ALLOWED. A random dream_id can't satisfy the
+  // FK, so this trips a foreign_key_violation *after* the privilege check —
+  // which proves INSERT is permitted without committing a junk row (dreams is
+  // immutable, so a real test row could never be cleaned up).
+  console.log("\n--- write that must be allowed ---");
+  try {
+    await sql.query(
+      "INSERT INTO analyses (dream_id, model, prompt_version, blind) " +
+        "VALUES (gen_random_uuid(), 'immutability-proof', 'immutability-proof', true)"
+    );
+    console.log("OK    INSERT into analyses committed (permitted).");
+  } catch (err) {
+    const denied =
+      err.code === "42501" || /permission denied/i.test(err.message);
+    if (denied) {
+      console.log(`FAIL  INSERT into analyses denied: ${err.message}`);
+      process.exitCode = 1;
+    } else {
+      console.log(
+        `OK    INSERT into analyses permitted (reached constraint check, ` +
+          `not blocked by privilege): ${err.message}`
+      );
     }
   }
 }
