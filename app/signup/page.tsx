@@ -21,6 +21,13 @@ export default async function Signup({
         <img src="/wordmark-light.svg" alt="rehm" style={{ height: 44, display: "inline-block" }} />
       </div>
       <p className="muted">Create an account. Invite only.</p>
+
+      <p style={{ lineHeight: 1.5 }}>
+        Sign-up requires your own LLM API key. Those API calls are billed to your own account. There
+        is no admin feature. There is no password reset. I can&apos;t see anything, so if you lose
+        it, the account is gone.
+      </p>
+
       {error && <p className="notice">{ERRORS[error] ?? ERRORS.invalid}</p>}
 
       <form method="post" action="/api/auth/signup" className="stack" style={{ marginTop: 18 }}>
@@ -32,17 +39,6 @@ export default async function Signup({
           <label htmlFor="email">Email</label>
           <input id="email" type="text" name="email" autoComplete="email" inputMode="email" required />
         </div>
-
-        {/* Honesty notice — plain on the page, directly above the password field. */}
-        <p
-          className="card"
-          style={{ background: "var(--surface-2)", fontSize: "0.98rem", lineHeight: 1.5 }}
-        >
-          Your dreams are stored in this app&apos;s database. There is no admin view — no one can
-          read your dreams through rehm. The person running it holds the database credential and
-          could read them directly; he doesn&apos;t. Your password is hashed and is not recoverable
-          by anyone. API calls are billed to your own Anthropic account.
-        </p>
 
         <div>
           <label htmlFor="password">Password (at least 8 characters)</label>
