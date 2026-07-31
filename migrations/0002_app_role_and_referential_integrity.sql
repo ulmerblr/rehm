@@ -55,26 +55,37 @@ GRANT USAGE ON SCHEMA public TO rehm_app;
 -- dreams: read + append only. No UPDATE, no DELETE — ever.
 GRANT SELECT, INSERT ON dreams TO rehm_app;
 
--- Derived tables: append-only + purge. SELECT, INSERT, DELETE — NO UPDATE.
--- Discarding a bad run (DELETE) is allowed; editing a record is not. Trend
--- runs are versioned and never overwritten; restatements/analyses accumulate
--- per dream; taggings are recomputed as new rows tied to a new tagging_run;
--- concepts are re-created, not renamed in place.
+-- trend_runs: read + append only. No DELETE — a trend run is versioned and
+-- must stay readable so an old hypothesis can be scored when new dreams
+-- arrive, not quietly revised. The ON DELETE CASCADE to trend_claims (0001)
+-- is for deliberate owner-credential purges only, never the app.
+GRANT SELECT, INSERT ON trend_runs TO rehm_app;
+
+-- Remaining derived tables: append-only + purge. SELECT, INSERT, DELETE —
+-- NO UPDATE. Discarding a bad run (DELETE) is allowed; editing a record is
+-- not. restatements/analyses accumulate per dream; taggings are recomputed as
+-- new rows tied to a new tagging_run; concepts are re-created, not renamed;
+-- trend_claims are re-derivable, so DELETE here is harmless.
 GRANT SELECT, INSERT, DELETE ON
   restatements,
   analyses,
-  trend_runs,
   trend_claims,
   concepts,
   tagging_runs,
   taggings
 TO rehm_app;
 
--- Migration ledger: read only. The app must never rewrite migration history.
-GRANT SELECT ON schema_migrations TO rehm_app;
+-- Control tables: unreachable by the app. schema_migrations and
+-- migration_owner are created in 0001, before the ALTER DEFAULT PRIVILEGES
+-- below, so they carry no default rehm_app grant — but revoke explicitly so
+-- the intent is auditable and survives any future re-grant. Any NEW control
+-- table added in a later migration MUST carry its own REVOKE (default
+-- privileges on schema public grant SELECT/INSERT/DELETE to rehm_app).
+REVOKE ALL ON schema_migrations, migration_owner FROM rehm_app;
 
 -- Defensive, auditable statement of the append-only architecture: rehm_app
--- holds UPDATE on nothing. (No-ops where UPDATE was never granted above.)
+-- holds UPDATE on nothing, and DELETE on neither dreams nor trend_runs.
+-- (No-ops where the privilege was never granted above.)
 REVOKE UPDATE ON
   dreams,
   restatements,
@@ -85,6 +96,7 @@ REVOKE UPDATE ON
   tagging_runs,
   taggings
 FROM rehm_app;
+REVOKE DELETE ON dreams, trend_runs FROM rehm_app;
 
 -- 1c. Future tables created by the owner inherit the same append-only grants
 -- (SELECT, INSERT, DELETE — no UPDATE). FOR ROLE is omitted, so this targets

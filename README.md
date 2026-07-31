@@ -29,13 +29,23 @@ database as a whole:
 - **`dreams` — genuinely append-only for the app role.** `rehm_app` has
   `SELECT, INSERT` only: no `UPDATE`, no `DELETE`, ever. A raw transcript can
   never be edited or removed by the application.
-- **Derived tables (`restatements`, `analyses`, `trend_runs`, `trend_claims`,
+- **`trend_runs` — versioned, app-append-only.** `rehm_app` has `SELECT,
+  INSERT` only (no `DELETE`, no `UPDATE`). A trend run must stay readable so an
+  old hypothesis can be scored when new dreams arrive, rather than quietly
+  revised. Purging a bad run is a deliberate owner-credential operation; the
+  `ON DELETE CASCADE` to `trend_claims` applies only to that owner purge.
+- **Other derived tables (`restatements`, `analyses`, `trend_claims`,
   `concepts`, `tagging_runs`, `taggings`) — no in-place edit.** `rehm_app` has
   `SELECT, INSERT, DELETE` but **no `UPDATE`**. A record cannot be revised in
   place; a `DELETE` + `INSERT` can reproduce the effect of an edit. This is
   deliberate — purging a bad run is discarding a record, not revising one.
-  Deleting a `trend_run` or `tagging_run` cascades to its `trend_claims` /
-  `taggings`; nothing cascades to `dreams`.
+  Deleting a `tagging_run` cascades to its `taggings`; nothing cascades to
+  `dreams`.
+- **Control tables (`schema_migrations`, `migration_owner`) — unreachable by
+  the app.** `rehm_app` holds no privilege on them. Note: default privileges on
+  schema `public` grant `SELECT/INSERT/DELETE` to `rehm_app` for **new** tables,
+  so any future control table **must carry its own `REVOKE ALL … FROM rehm_app`**
+  in the migration that creates it.
 - **The owner credential can undo any of this.** The owner owns the tables and
   can re-grant privileges or edit any row. Immutability holds because the owner
   credential is used only for migrations and is never present in the app

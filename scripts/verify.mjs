@@ -73,6 +73,7 @@ async function proveImmutability(sql) {
     ["DELETE dreams", "DELETE FROM dreams WHERE false"],
     ["self-GRANT dreams", "GRANT UPDATE ON dreams TO CURRENT_USER"],
     ["UPDATE analyses", "UPDATE analyses SET body = body WHERE false"],
+    ["DELETE trend_runs", "DELETE FROM trend_runs WHERE false"],
   ];
   for (const [label, stmt] of rejected) {
     try {

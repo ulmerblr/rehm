@@ -29,6 +29,10 @@ GRANT UPDATE ON dreams TO CURRENT_USER;
 -- derived tables are append-only: expect "permission denied for table analyses".
 UPDATE analyses SET body = body WHERE false;
 
+-- trend_runs are versioned and never app-deletable: expect
+-- "permission denied for table trend_runs".
+DELETE FROM trend_runs WHERE false;
+
 -- INSERT is allowed: expect a foreign_key_violation on dream_id (the statement
 -- passed the privilege check), NOT permission denied. A random uuid can't match
 -- a real dream, so nothing is committed.
