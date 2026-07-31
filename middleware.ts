@@ -23,6 +23,6 @@ export const config = {
   // static assets (any path with a file extension, and _next). The wordmark SVG
   // and favicons must be reachable without a session (they render on /login).
   matcher: [
-    "/((?!login|signup|icon|apple-icon|api/auth/login|api/auth/signup|_next|.*\\.).*)",
+    "/((?!login|signup|icon|apple-icon|api/auth/login|api/auth/signup|api/migrate|_next|.*\\.).*)",
   ],
 };
