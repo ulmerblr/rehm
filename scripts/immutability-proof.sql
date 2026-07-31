@@ -3,7 +3,7 @@
 -- Run this as a REAL rehm_app connection, not `SET ROLE` from the owner
 -- (SET ROLE skips the connection/password path). Two ways:
 --   * Neon SQL editor with the role selector set to rehm_app, or
---   * npm run migrate  with DATABASE_URL pointing at rehm_app.
+--   * npm run verify  with DATABASE_URL pointing at rehm_app.
 -- Expected results are noted per statement.
 
 -- Role hardening (correction #1): expect rolsuper = f, rolbypassrls = f, and

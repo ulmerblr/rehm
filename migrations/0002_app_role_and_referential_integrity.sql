@@ -23,6 +23,26 @@
 -- password out of band with an uncommitted statement in the SQL editor:
 --   ALTER ROLE rehm_app WITH LOGIN PASSWORD '...';
 -- then point DATABASE_URL at rehm_app.
+--
+-- OWNER PIN: must be applied as the same owner role that applied 0001, so the
+-- ALTER DEFAULT PRIVILEGES below (no FOR ROLE) binds to that owner. Asserted.
+
+-- Owner-pin assertion (see migrations/OWNER_ROLE.md). Fails loud if this is
+-- applied by any role other than the one that applied 0001.
+DO $$
+BEGIN
+  IF to_regclass('public.migration_owner') IS NOT NULL
+     AND EXISTS (SELECT 1 FROM migration_owner)
+     AND current_user <> (SELECT owner_role FROM migration_owner) THEN
+    RAISE EXCEPTION
+      'migration must be applied as pinned owner role "%", but current_user is "%"',
+      (SELECT owner_role FROM migration_owner), current_user;
+  END IF;
+END
+$$;
+
+-- Capture and print the applying (owner) role for the repo record.
+SELECT current_user AS applying_role;
 
 -- 1a. App role — SQL only. No IF NOT EXISTS: if it already exists (e.g. from a
 -- prior partial run, or wrongly created in the console) this errors so the

@@ -1,24 +1,40 @@
 -- rehm schema — Milestone 3
 --
 -- Apply this in the Neon SQL editor as the OWNER role (the default Neon role
--- that owns the database). Migration 0002 sets up the separate app role and
--- referential integrity; run 0001 then 0002 in order.
+-- that owns the database). Run 0001 then 0002 in order, both as the owner.
+--
+-- OWNER PIN: the role that applies 0001 is recorded in migration_owner and
+-- every migration asserts current_user matches it (see migrations/OWNER_ROLE.md).
+-- This keeps ALTER DEFAULT PRIVILEGES (no FOR ROLE, in 0002) bound to one owner.
 --
 -- Conventions:
 --   * Primary keys: uuid, default gen_random_uuid() (built-in, Postgres 13+)
 --   * Timestamps:   timestamptz, default now()
---   * user_id:      uuid, no FK yet (no users table this milestone; native
---                   auth + hub SSO arrive later and will supply these ids)
+--   * user_id:      uuid, no FK yet (native auth + hub SSO arrive later)
 --
 -- Invariants:
---   * dreams is INSERT-ONLY. Enforced at the DB level via role separation:
---     the app role (0002) is never granted UPDATE/DELETE on dreams and cannot
---     grant them to itself. The owner is used only for migrations.
+--   * dreams is INSERT-ONLY for the app role (role separation in 0002).
 --   * restatements and analyses are independent SIBLINGS derived from
---     dreams.raw_transcript — NO foreign key between them in either direction.
+--     dreams.raw_transcript — NO foreign key between them.
 --   * Every derived row carries NOT NULL model + prompt_version.
---   * trend_claims.dream_ids must be non-empty (DB CHECK) and referentially
---     valid (constraint trigger in 0002).
+--   * trend_claims.dream_ids non-empty (CHECK) + referentially valid (0002).
+
+-- Owner-pin assertion. On the very first apply migration_owner does not exist
+-- yet, so this passes; it fails loud on any later apply by a different role.
+DO $$
+BEGIN
+  IF to_regclass('public.migration_owner') IS NOT NULL
+     AND EXISTS (SELECT 1 FROM migration_owner)
+     AND current_user <> (SELECT owner_role FROM migration_owner) THEN
+    RAISE EXCEPTION
+      'migration must be applied as pinned owner role "%", but current_user is "%"',
+      (SELECT owner_role FROM migration_owner), current_user;
+  END IF;
+END
+$$;
+
+-- Print the applying role for the record.
+SELECT current_user AS applying_role;
 
 -- Migration ledger. Created here so an owner running this file in the Neon SQL
 -- editor bootstraps it; the Node runner reads it to avoid reapplying.
@@ -26,6 +42,17 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
   version    text PRIMARY KEY,
   applied_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- Owner pin (singleton). Captures the owner role from the first apply of 0001.
+CREATE TABLE IF NOT EXISTS migration_owner (
+  singleton  boolean PRIMARY KEY DEFAULT true,
+  owner_role text NOT NULL,
+  pinned_at  timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT migration_owner_singleton CHECK (singleton)
+);
+INSERT INTO migration_owner (owner_role)
+VALUES (current_user)
+ON CONFLICT (singleton) DO NOTHING;
 
 -- Immutable primary record. UPDATE/DELETE withheld from the app role in 0002.
 CREATE TABLE dreams (
@@ -71,9 +98,10 @@ CREATE TABLE trend_runs (
 );
 
 -- Individual claims produced by a trend run, each citing >= 1 dream.
+-- ON DELETE CASCADE: purging a bad trend_run discards its claims atomically.
 CREATE TABLE trend_claims (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  trend_run_id  uuid NOT NULL REFERENCES trend_runs (id),
+  trend_run_id  uuid NOT NULL REFERENCES trend_runs (id) ON DELETE CASCADE,
   claim         text NOT NULL,
   dream_ids     uuid[] NOT NULL,
   created_at    timestamptz NOT NULL DEFAULT now(),
@@ -106,11 +134,14 @@ CREATE TABLE tagging_runs (
 );
 
 -- A single (concept, dream) tag produced by a tagging run.
+-- ON DELETE CASCADE on tagging_run_id: purging a bad tagging_run discards its
+-- taggings atomically. dream_id and concept_id do NOT cascade — deleting a run
+-- must never reach dreams or concepts.
 CREATE TABLE taggings (
   id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   concept_id     uuid NOT NULL REFERENCES concepts (id),
   dream_id       uuid NOT NULL REFERENCES dreams (id),
-  tagging_run_id uuid NOT NULL REFERENCES tagging_runs (id),
+  tagging_run_id uuid NOT NULL REFERENCES tagging_runs (id) ON DELETE CASCADE,
   created_at     timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX taggings_run_idx ON taggings (tagging_run_id);
