@@ -6,6 +6,7 @@ import ExportButton from "@/app/components/ExportButton";
 import RestatementLoop from "@/app/components/RestatementLoop";
 import Header from "@/app/components/Header";
 import DreamActions from "./DreamActions";
+import DeleteDream from "./DeleteDream";
 
 export const dynamic = "force-dynamic";
 
@@ -111,6 +112,12 @@ export default async function DreamPage({
 
       <h2>Export</h2>
       <ExportButton text={exportText} label="Copy dream as text" />
+
+      <h2 style={{ marginTop: 32, color: "var(--danger)" }}>Danger zone</h2>
+      <p className="muted" style={{ marginTop: 0 }}>
+        Deleting a dream is permanent. Consider copying it as text first.
+      </p>
+      <DeleteDream dreamId={dream.id} sequenceNo={dream.sequenceNo} />
     </main>
   );
 }
