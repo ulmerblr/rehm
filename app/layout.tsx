@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ensureMigrated, type MigrateResult } from "@/lib/migrate";
+import BottomNav from "@/app/components/BottomNav";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://rehm.xyzroot.com"),
@@ -94,6 +95,7 @@ export default async function RootLayout({
           )}
           {children}
         </div>
+        <BottomNav />
       </body>
     </html>
   );

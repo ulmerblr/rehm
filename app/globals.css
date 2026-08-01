@@ -34,7 +34,8 @@ body {
 .container {
   max-width: 680px;
   margin: 0 auto;
-  padding: 24px 20px 96px;
+  /* Bottom padding clears the fixed nav plus the home indicator. */
+  padding: 24px 20px calc(96px + env(safe-area-inset-bottom));
 }
 
 a {
@@ -399,6 +400,101 @@ summary {
   background: var(--surface-2);
   border-left: 3px solid var(--accent);
   border-radius: 0 12px 12px 0;
+}
+
+/* Bottom navigation — fixed, thumb-reachable, clear of the home indicator. */
+.bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.nav-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 58px;
+  padding: 8px 4px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.nav-tab-on {
+  color: var(--accent);
+}
+
+.nav-tab:active {
+  filter: brightness(1.3);
+}
+
+/* The one figure a view leads with. Proportional figures, not tabular — at
+   display size, tabular digits read loose. */
+.hero {
+  text-align: center;
+  padding: 4px 0 6px;
+}
+
+.hero-figure {
+  font-size: 3.4rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* Supporting stat tiles: label above, value below, no boxes competing with the
+   hero. */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.stat-label {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.stat-of {
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 400;
+}
+
+/* A nudge row: status on the left, where it leads on the right. */
+.nudge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
 }
 
 /* Batch progress for a queued trend pass. */

@@ -26,7 +26,7 @@ export default function DeleteDream({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || data?.error || `failed (${res.status})`);
       // Gone — leave the (now-deleted) detail page for the dream list.
-      router.replace("/");
+      router.replace("/dreams");
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "failed");

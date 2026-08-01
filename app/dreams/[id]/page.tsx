@@ -36,7 +36,7 @@ export default async function DreamPage({
       <Header />
       <div className="row" style={{ justifyContent: "space-between" }}>
         <h1 style={{ margin: 0 }}>Dream {dream.sequenceNo}</h1>
-        <Link href="/">← Dreams</Link>
+        <Link href="/dreams">← Log</Link>
       </div>
       <EditableTitle
         dreamId={dream.id}

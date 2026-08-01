@@ -123,6 +123,54 @@ export async function listDreamDates(
   }));
 }
 
+export type DashboardStats = {
+  dreams: number;
+  analyzedDreams: number;
+  analyses: number;
+  trendRuns: number;
+  additions: number;
+  lastDream: DreamListItem | null;
+  lastTrendAt: string | null;
+};
+
+// Summary counts for the home page. Tables added by later migrations degrade to
+// zero rather than taking the page down.
+export async function getDashboardStats(userId: string): Promise<DashboardStats> {
+  const sql = getSql();
+  const dreams = await listDreams(userId);
+
+  const [a] = (await sql`
+    SELECT count(*) AS n FROM analyses a
+    JOIN dreams d ON d.id = a.dream_id WHERE d.user_id = ${userId}
+  `) as Array<{ n: unknown }>;
+
+  const [t] = (await sql`
+    SELECT count(*) AS n, max(created_at) AS last_at
+    FROM trend_runs WHERE user_id = ${userId}
+  `) as Array<{ n: unknown; last_at: unknown }>;
+
+  let additions = 0;
+  try {
+    const [r] = (await sql`
+      SELECT count(*) AS n FROM dream_addenda x
+      JOIN dreams d ON d.id = x.dream_id WHERE d.user_id = ${userId}
+    `) as Array<{ n: unknown }>;
+    additions = toInt(r.n);
+  } catch (err) {
+    if (!isMissingSchema(err)) throw err;
+  }
+
+  return {
+    dreams: dreams.length,
+    analyzedDreams: dreams.filter((d) => d.analysisCount > 0).length,
+    analyses: toInt(a.n),
+    trendRuns: toInt(t.n),
+    additions,
+    lastDream: dreams[0] ?? null,
+    lastTrendAt: toIso(t.last_at),
+  };
+}
+
 export async function nextSequenceNo(userId: string): Promise<number> {
   const sql = getSql();
   const [row] = (await sql`

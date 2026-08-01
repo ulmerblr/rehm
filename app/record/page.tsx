@@ -16,7 +16,7 @@ export default async function Record() {
       <Header />
       <div className="row" style={{ justifyContent: "space-between" }}>
         <h1 style={{ margin: 0 }}>Record</h1>
-        <Link href="/">← Dreams</Link>
+        <Link href="/dreams">← Log</Link>
       </div>
       <RecordFlow sequenceNo={seq} today={today} />
     </main>
