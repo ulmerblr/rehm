@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ensureMigrated, type MigrateResult } from "@/lib/migrate";
 import BottomNav from "@/app/components/BottomNav";
+import AppBar from "@/app/components/AppBar";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://rehm.xyzroot.com"),
@@ -85,6 +86,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body>
+        <AppBar />
         <div className="container">
           {migration.status === "failed" && (
             <MigrationBanner

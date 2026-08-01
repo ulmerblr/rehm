@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { requireUserId } from "@/lib/session";
-import { getDashboardStats, getUserEmail } from "@/lib/queries";
-import Header from "@/app/components/Header";
-import ProfileChip from "@/app/components/ProfileChip";
+import { getDashboardStats } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -18,14 +16,12 @@ function formatDreamDate(iso: string): string {
 
 export default async function Home() {
   const userId = await requireUserId();
-  const [stats, email] = await Promise.all([getDashboardStats(userId), getUserEmail(userId)]);
+  const stats = await getDashboardStats(userId);
 
   const unanalyzed = stats.dreams - stats.analyzedDreams;
 
   return (
     <main>
-      <Header right={<ProfileChip email={email} />} />
-
       <Link href="/record" className="btn btn-primary btn-block btn-lg" style={{ marginTop: 4 }}>
         Record a dream
       </Link>

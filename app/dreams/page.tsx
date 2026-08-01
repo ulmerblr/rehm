@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { requireUserId } from "@/lib/session";
 import { listDreams } from "@/lib/queries";
-import Header from "@/app/components/Header";
 import AnalyzeInline from "@/app/components/AnalyzeInline";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +21,6 @@ export default async function DreamLog() {
 
   return (
     <main>
-      <Header />
       <div className="row" style={{ justifyContent: "space-between" }}>
         <h1 style={{ margin: 0 }}>Dream log</h1>
         <span className="seq">

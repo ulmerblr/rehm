@@ -35,7 +35,13 @@ body {
   max-width: 680px;
   margin: 0 auto;
   /* Bottom padding clears the fixed nav plus the home indicator. */
-  padding: 24px 20px calc(96px + env(safe-area-inset-bottom));
+  padding: 20px 20px calc(96px + env(safe-area-inset-bottom));
+}
+
+/* A page's own title sits directly under the bar with no doubled gap. */
+main > h1:first-child,
+main > .row:first-child {
+  margin-top: 0;
 }
 
 a {
@@ -400,6 +406,39 @@ summary {
   background: var(--surface-2);
   border-left: 3px solid var(--accent);
   border-radius: 0 12px 12px 0;
+}
+
+/* Top app bar — present on every signed-in page. Sticky with its own surface
+   and a hairline, so content scrolls *under* a defined edge instead of the
+   wordmark dissolving into the page. */
+.app-bar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border);
+}
+
+.app-bar-inner {
+  max-width: 680px;
+  margin: 0 auto;
+  min-height: 56px;
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.app-bar-mark {
+  display: block;
+  line-height: 0;
+}
+
+.app-bar-mark img {
+  height: 20px;
+  display: block;
 }
 
 /* Bottom navigation — fixed, thumb-reachable, clear of the home indicator. */

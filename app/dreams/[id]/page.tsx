@@ -5,7 +5,6 @@ import { getDream, getRestatementState, getAnalyses, getAddenda } from "@/lib/qu
 import { formatStamp } from "@/lib/scope";
 import ExportButton from "@/app/components/ExportButton";
 import RestatementLoop from "@/app/components/RestatementLoop";
-import Header from "@/app/components/Header";
 import DreamActions from "./DreamActions";
 import DeleteDream from "./DeleteDream";
 import EditableTitle from "./EditableTitle";
@@ -33,7 +32,6 @@ export default async function DreamPage({
 
   return (
     <main>
-      <Header />
       <div className="row" style={{ justifyContent: "space-between" }}>
         <h1 style={{ margin: 0 }}>Dream {dream.sequenceNo}</h1>
         <Link href="/dreams">← Log</Link>

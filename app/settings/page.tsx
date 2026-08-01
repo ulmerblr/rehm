@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { requireUserId } from "@/lib/session";
 import { getActiveKeyInfo, getTokenTotal, getUserEmail } from "@/lib/queries";
-import Header from "@/app/components/Header";
 import Avatar from "@/app/components/Avatar";
 import KeyForm from "./KeyForm";
 import MigrateButton from "./MigrateButton";
@@ -18,7 +17,6 @@ export default async function Settings() {
 
   return (
     <main>
-      <Header />
       <h1 style={{ margin: 0 }}>Settings</h1>
 
       {/* Profile — who you're signed in as. */}
