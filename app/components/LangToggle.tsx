@@ -2,32 +2,36 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { LANG_ENDONYM, otherLang, type Lang } from "@/lib/lang";
+import { LANGS, LANG_ENDONYM, type Lang } from "@/lib/lang";
+
+// Three letters, not two: ENG/ESP reads as a language everywhere, while EN/ES
+// looks like a country code and, next to each other, like a typo.
+const CODE: Record<Lang, string> = { en: "ENG", es: "ESP" };
 
 /**
  * Flip the whole interface into the other language.
  *
- * This is a lens for handing someone your phone, not a preference — it never
- * touches what the account writes in. It shows the language you would switch
- * TO, named in itself, because a control offering "Spanish" is no use to
- * someone who is reaching for it precisely because they don't read English.
+ * Both languages are always on screen with the current one filled. A control
+ * that showed only the language you'd switch TO is ambiguous at a glance —
+ * you can't tell whether the label names where you are or where you'd go — and
+ * it's worse in the moment it exists for, which is handing someone your phone.
  *
- * Only rendered on dual-language accounts; a single-language account has
- * nothing to switch to and never sees it.
+ * This is a lens, not a preference: it never touches what the account writes
+ * in. Only rendered on dual-language accounts.
  */
 export default function LangToggle({ current }: { current: Lang }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [busy, setBusy] = useState(false);
-  const target = otherLang(current);
 
-  async function flip() {
+  async function pick(lang: Lang) {
+    if (lang === current) return;
     setBusy(true);
     try {
       await fetch("/api/lang", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ lang: target }),
+        body: JSON.stringify({ lang }),
       });
       // Server components hold the copy, so the whole tree has to re-render.
       startTransition(() => router.refresh());
@@ -39,15 +43,21 @@ export default function LangToggle({ current }: { current: Lang }) {
   }
 
   return (
-    <button
-      type="button"
-      className="lang-toggle"
-      onClick={flip}
-      disabled={busy || pending}
-      aria-label={LANG_ENDONYM[target]}
-      title={LANG_ENDONYM[target]}
-    >
-      {target.toUpperCase()}
-    </button>
+    <div className="lang-seg" role="group" aria-label="Language">
+      {LANGS.map((l) => (
+        <button
+          key={l}
+          type="button"
+          className={l === current ? "lang-seg-btn lang-seg-on" : "lang-seg-btn"}
+          onClick={() => pick(l)}
+          disabled={busy || pending}
+          aria-pressed={l === current}
+          aria-label={LANG_ENDONYM[l]}
+          title={LANG_ENDONYM[l]}
+        >
+          {CODE[l]}
+        </button>
+      ))}
+    </div>
   );
 }

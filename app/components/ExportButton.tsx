@@ -5,7 +5,15 @@ import { useState } from "react";
 // Copies a plain-text export to the clipboard for pasting into any LLM to
 // continue elsewhere. Falls back to a selectable textarea if the clipboard API
 // is unavailable.
-export default function ExportButton({ text, label = "Export" }: { text: string; label?: string }) {
+export default function ExportButton({
+  text,
+  label = "Export",
+  copiedLabel = "Copied ✓",
+}: {
+  text: string;
+  label?: string;
+  copiedLabel?: string;
+}) {
   const [copied, setCopied] = useState(false);
   const [showFallback, setShowFallback] = useState(false);
 
@@ -22,7 +30,7 @@ export default function ExportButton({ text, label = "Export" }: { text: string;
   return (
     <div>
       <button className="btn" onClick={copy} type="button">
-        {copied ? "Copied ✓" : label}
+        {copied ? copiedLabel : label}
       </button>
       {showFallback && (
         <textarea

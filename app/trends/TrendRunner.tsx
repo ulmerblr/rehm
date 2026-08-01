@@ -2,13 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  isoDaysAgo,
-  isoToday,
-  scopeLabel,
-  selectInScope,
-  type Scope,
-} from "@/lib/scope";
+import { isoDaysAgo, isoToday, selectInScope, type Scope } from "@/lib/scope";
+import { dict } from "@/lib/i18n";
+import type { Lang } from "@/lib/lang";
 
 type DreamDate = { sequenceNo: number; dreamtOn: string | null };
 type Kind = "all" | "last_n" | "range";
@@ -20,11 +16,25 @@ type Source = "dreams" | "dreams_and_analyses";
 export default function TrendRunner({
   dreams,
   analyzedCount,
+  lang,
 }: {
   dreams: DreamDate[];
   analyzedCount: number;
+  lang: Lang;
 }) {
   const router = useRouter();
+  const t = dict(lang);
+
+  // The label the runner previews. scopeLabel() in lib/scope is the one STORED
+  // on a run — it stays in the language the pass was made in, because the run
+  // is immutable. This one is for the screen, so it follows the view.
+  const labelFor = (s: Scope): string => {
+    if (s.kind === "all") return t.allDreams;
+    if (s.kind === "last_n") return t.lastNDreams(s.lastN);
+    if (s.from && s.to) return `${t.formatDate(s.from)} – ${t.formatDate(s.to)}`;
+    if (s.from) return t.since(t.formatDate(s.from));
+    return t.upTo(t.formatDate(s.to as string));
+  };
   const [source, setSource] = useState<Source>("dreams");
   const [kind, setKind] = useState<Kind>("all");
   const [lastN, setLastN] = useState(Math.min(5, Math.max(dreams.length, 1)));
@@ -79,7 +89,7 @@ export default function TrendRunner({
       setStage(data.stage === "synthesis" ? "synthesis" : "reading");
       if (data.done) return;
     }
-    throw new Error("The pass did not finish. Press Resume to continue.");
+    throw new Error(t.passDidNotFinish);
   }
 
   async function run() {
@@ -134,12 +144,12 @@ export default function TrendRunner({
 
   return (
     <div className="panel">
-      <div className="stamp" style={{ marginBottom: 8 }}>Read</div>
+      <div className="stamp" style={{ marginBottom: 8 }}>{t.read}</div>
       <div className="segmented">
         {(
           [
-            ["dreams", "Dreams"],
-            ["dreams_and_analyses", "+ Analyses"],
+            ["dreams", t.readDreams],
+            ["dreams_and_analyses", t.readPlusAnalyses],
           ] as Array<[Source, string]>
         ).map(([s, label]) => (
           <button
@@ -154,20 +164,20 @@ export default function TrendRunner({
       </div>
       <p className="muted" style={{ margin: "8px 0 0", fontSize: "0.85rem" }}>
         {source === "dreams"
-          ? "Trends drawn from what you actually said."
+          ? t.readDreamsNote
           : analyzedCount === 0
-            ? "No dreams are analyzed yet — this will read the same as Dreams."
-            : `Also reads each dream's latest analysis (${analyzedCount} analyzed). Richer, but it can find patterns in its own earlier readings.`}
+            ? t.readNoneAnalyzed
+            : t.readPlusNote(analyzedCount)}
       </p>
 
-      <div className="stamp" style={{ margin: "22px 0 8px" }}>Scope</div>
+      <div className="stamp" style={{ margin: "22px 0 8px" }}>{t.scope}</div>
 
       <div className="segmented">
         {(
           [
-            ["all", "All"],
-            ["last_n", "Last N"],
-            ["range", "Dates"],
+            ["all", t.scopeAll],
+            ["last_n", t.scopeLastN],
+            ["range", t.scopeDates],
           ] as Array<[Kind, string]>
         ).map(([k, label]) => (
           <button
@@ -187,21 +197,21 @@ export default function TrendRunner({
             className="btn stepper"
             onClick={() => setLastN((n) => Math.max(1, n - 1))}
             disabled={busy || lastN <= 1}
-            aria-label="One fewer dream"
+            aria-label={t.oneFewer}
           >
             −
           </button>
           <div style={{ minWidth: 92, textAlign: "center" }}>
             <div className="run-corpus">{lastN}</div>
             <div className="muted" style={{ fontSize: "0.8rem" }}>
-              dream{lastN === 1 ? "" : "s"}
+              {t.dreamsUnit(lastN)}
             </div>
           </div>
           <button
             className="btn stepper"
             onClick={() => setLastN((n) => Math.min(max, n + 1))}
             disabled={busy || lastN >= max}
-            aria-label="One more dream"
+            aria-label={t.oneMore}
           >
             +
           </button>
@@ -212,18 +222,18 @@ export default function TrendRunner({
         <div style={{ marginTop: 14 }}>
           <div className="row" style={{ gap: 8 }}>
             <button className="btn btn-sm" onClick={() => applyPreset(7)} disabled={busy}>
-              Past week
+              {t.pastWeek}
             </button>
             <button className="btn btn-sm" onClick={() => applyPreset(30)} disabled={busy}>
-              Past month
+              {t.pastMonth}
             </button>
             <button className="btn btn-sm" onClick={() => applyPreset(365)} disabled={busy}>
-              Past year
+              {t.pastYear}
             </button>
           </div>
           <div className="row" style={{ gap: 12, marginTop: 12 }}>
             <label style={{ margin: 0, flex: 1 }}>
-              From
+              {t.from}
               <input
                 type="date"
                 value={from}
@@ -233,7 +243,7 @@ export default function TrendRunner({
               />
             </label>
             <label style={{ margin: 0, flex: 1 }}>
-              To
+              {t.to}
               <input
                 type="date"
                 value={to}
@@ -249,9 +259,9 @@ export default function TrendRunner({
       <p className="muted" style={{ margin: "14px 0 0", fontSize: "0.92rem" }}>
         {inScope.length === 0
           ? kind === "range" && !from && !to
-            ? "Pick a start or end date."
-            : "No dreams fall in that range."
-          : `${scopeLabel(scope)} — ${inScope.length} dream${inScope.length === 1 ? "" : "s"} in this pass.`}
+            ? t.pickADate
+            : t.noneInRange
+          : t.inThisPass(labelFor(scope), inScope.length)}
       </p>
 
       {busy && progress && (
@@ -266,8 +276,8 @@ export default function TrendRunner({
           </div>
           <p className="muted" style={{ margin: "8px 0 0", fontSize: "0.9rem" }}>
             {stage === "synthesis"
-              ? "Read everything. Drawing the trends together…"
-              : `Reading — batch ${Math.min(progress.completed + 1, progress.total)} of ${progress.total}.`}
+              ? t.readEverything
+              : t.readingBatch(Math.min(progress.completed + 1, progress.total), progress.total)}
           </p>
         </div>
       )}
@@ -287,7 +297,7 @@ export default function TrendRunner({
           onClick={run}
           disabled={!canRun}
         >
-          {busy ? "Running…" : "Run a trend pass"}
+          {busy ? t.running : t.runATrendPass}
         </button>
       )}
       {error && (
@@ -295,7 +305,7 @@ export default function TrendRunner({
           <div>{error}</div>
           {detail && (
             <details style={{ marginTop: 10, background: "none", border: "none", padding: 0 }}>
-              <summary style={{ fontSize: "0.85rem", padding: "4px 0" }}>Details</summary>
+              <summary style={{ fontSize: "0.85rem", padding: "4px 0" }}>{t.details}</summary>
               <div style={{ fontSize: "0.85rem", wordBreak: "break-word" }}>{detail}</div>
             </details>
           )}

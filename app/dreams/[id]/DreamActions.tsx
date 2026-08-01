@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { dict } from "@/lib/i18n";
+import type { Lang } from "@/lib/lang";
 
-export default function DreamActions({ dreamId }: { dreamId: string }) {
+export default function DreamActions({ dreamId, lang }: { dreamId: string; lang: Lang }) {
   const router = useRouter();
+  const t = dict(lang);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,7 +29,7 @@ export default function DreamActions({ dreamId }: { dreamId: string }) {
   return (
     <div>
       <button className="btn btn-primary" onClick={runAnalysis} disabled={busy}>
-        {busy ? "Analyzing…" : "Run analysis"}
+        {busy ? t.analyzing : t.runAnalysis}
       </button>
       {error && <p className="notice" style={{ marginTop: 10 }}>{error}</p>}
     </div>

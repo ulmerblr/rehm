@@ -364,35 +364,48 @@ label {
   gap: 14px;
 }
 
-/* The language lens. Brass-outlined rather than filled: it is a control you
-   reach for when handing the phone over, not a primary action competing with
-   "Record a dream". Shows the language you'd switch TO. */
-.lang-toggle {
+/* The language lens. Both languages are always visible so the control says
+   where you are as well as where you could go; the current one is filled.
+   Brass outline rather than a filled block: it is reached for when handing the
+   phone over, not a primary action competing with "Record a dream". */
+.lang-seg {
+  display: flex;
+  border: 1px solid var(--brass);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.lang-seg-btn {
   font-family: var(--font-data-stack);
-  font-size: 0.6875rem;
+  font-size: 0.625rem;
   font-weight: 500;
   letter-spacing: 0.08em;
   color: var(--brass);
   background: transparent;
-  border: 1px solid var(--brass);
-  border-radius: 3px;
-  padding: 8px 10px;
+  border: 0;
+  padding: 0 9px;
   cursor: pointer;
   line-height: 1;
   /* Small on the page, but a real target under the thumb: this gets tapped
-     while handing the phone to someone, which is not a careful gesture. */
-  min-height: 34px;
-  min-width: 40px;
+     while handing someone the phone, which is not a careful gesture. */
+  min-height: 32px;
 }
 
-.lang-toggle:hover:not(:disabled) {
+.lang-seg-btn + .lang-seg-btn {
+  border-left: 1px solid var(--brass);
+}
+
+.lang-seg-on {
   background: var(--brass);
   color: var(--ink);
 }
 
-.lang-toggle:disabled {
-  opacity: 0.5;
+.lang-seg-btn:disabled {
   cursor: default;
+}
+
+.lang-seg:has(:disabled) {
+  opacity: 0.6;
 }
 
 /* A translated passage is machine words standing in for said ones. The design

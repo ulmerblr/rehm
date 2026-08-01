@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { dict } from "@/lib/i18n";
+import type { Lang } from "@/lib/lang";
 
 // "I remembered something else." Adds to the record without touching the
 // original transcript — the first click just opens the box, so this can't be
 // mistaken for editing what was already said.
-export default function AddAddendum({ dreamId }: { dreamId: string }) {
+export default function AddAddendum({ dreamId, lang }: { dreamId: string; lang: Lang }) {
   const router = useRouter();
+  const t = dict(lang);
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -16,7 +19,7 @@ export default function AddAddendum({ dreamId }: { dreamId: string }) {
   async function save() {
     const body = text.trim();
     if (!body) {
-      setError("Nothing to add.");
+      setError(t.nothingToAdd);
       return;
     }
     setBusy(true);
@@ -57,12 +60,12 @@ export default function AddAddendum({ dreamId }: { dreamId: string }) {
         value={text}
         autoFocus
         onChange={(e) => setText(e.target.value)}
-        placeholder="What came back to you…"
+        placeholder={t.whatCameBack}
         style={{ minHeight: 140 }}
       />
       <div className="row" style={{ gap: 10, marginTop: 10 }}>
         <button className="btn btn-primary" onClick={save} disabled={busy}>
-          {busy ? "Adding…" : "Add to this dream"}
+          {busy ? t.adding : t.addToThisDream}
         </button>
         <button
           className="btn"

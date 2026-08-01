@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { dict } from "@/lib/i18n";
+import type { Lang } from "@/lib/lang";
 
 // The dream's title, editable in place.
 //
@@ -13,6 +15,7 @@ export default function EditableTitle({
   dreamId,
   initialTitle,
   isCustom,
+  lang,
   displayTitle,
   translatedNote,
 }: {
@@ -21,10 +24,12 @@ export default function EditableTitle({
   isCustom: boolean;
   /** What to show while not editing — the translation, when one is on screen. */
   displayTitle?: string;
+  lang: Lang;
   /** Label marking the shown title as machine words, if it is. */
   translatedNote?: string;
 }) {
   const router = useRouter();
+  const t = dict(lang);
   const [title, setTitle] = useState(initialTitle);
   const [saved, setSaved] = useState(isCustom);
   const [editing, setEditing] = useState(false);
@@ -45,7 +50,7 @@ export default function EditableTitle({
   async function save() {
     const next = draft.replace(/\s+/g, " ").trim();
     if (!next) {
-      setError("Title can't be empty.");
+      setError(t.titleCantBeEmpty);
       return;
     }
     setBusy(true);
@@ -96,20 +101,20 @@ export default function EditableTitle({
           value={draft}
           maxLength={120}
           autoFocus
-          placeholder={saved ? "Title" : title}
+          placeholder={saved ? t.dreamTitle : title}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") save();
             if (e.key === "Escape") setEditing(false);
           }}
-          aria-label="Dream title"
+          aria-label={t.dreamTitle}
         />
         <div className="row" style={{ gap: 10, marginTop: 10 }}>
           <button className="btn btn-primary" onClick={save} disabled={busy || suggesting}>
-            {busy ? "Saving…" : "Save title"}
+            {busy ? t.saving : t.saveTitle}
           </button>
           <button className="btn" onClick={suggest} disabled={busy || suggesting}>
-            {suggesting ? "Thinking…" : "Suggest one"}
+            {suggesting ? t.thinking : t.suggestOne}
           </button>
           <button
             className="btn"
@@ -119,7 +124,7 @@ export default function EditableTitle({
             }}
             disabled={busy || suggesting}
           >
-            Cancel
+            {t.cancel}
           </button>
         </div>
         {error && <p className="notice" style={{ marginTop: 10, marginBottom: 0 }}>{error}</p>}
@@ -136,7 +141,7 @@ export default function EditableTitle({
       <div className="row" style={{ gap: 10, marginTop: 4, alignItems: "baseline" }}>
         <span style={{ fontSize: "1.15rem", fontWeight: 600 }}>{shown}</span>
         <button className="linklike" onClick={openEditor}>
-          {saved ? "Edit" : "Add a title"}
+          {saved ? t.edit : t.addATitle}
         </button>
       </div>
       {translatedNote && shown !== title && (

@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { dict } from "@/lib/i18n";
+import type { Lang } from "@/lib/lang";
 
 // The restatement loop. Resumable: given an open (unaccepted) restatement it
 // shows the latest proposal (Agree / Disagree) or, if there is none yet, a
@@ -12,13 +14,16 @@ export default function RestatementLoop({
   dreamId,
   initialProposal,
   autoStart = false,
+  lang,
 }: {
   restatementId: string;
   dreamId: string;
   initialProposal: string | null;
   autoStart?: boolean;
+  lang: Lang;
 }) {
   const router = useRouter();
+  const t = dict(lang);
   const [proposal, setProposal] = useState<string | null>(initialProposal);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +89,7 @@ export default function RestatementLoop({
           onClick={() => propose()}
           disabled={busy}
         >
-          {busy ? "Thinking…" : "Get a restatement"}
+          {busy ? t.thinking : t.getARestatement}
         </button>
       </div>
     );
@@ -111,12 +116,12 @@ export default function RestatementLoop({
         </div>
       ) : (
         <div style={{ marginTop: 16 }}>
-          <label htmlFor="objection">What did it get wrong?</label>
+          <label htmlFor="objection">{t.whatDidItGetWrong}</label>
           <textarea
             id="objection"
             value={objection}
             onChange={(e) => setObjection(e.target.value)}
-            placeholder="It said… but actually…"
+            placeholder={t.objectionPlaceholder}
             style={{ minHeight: 140 }}
           />
           <div className="row" style={{ marginTop: 12 }}>
@@ -125,14 +130,14 @@ export default function RestatementLoop({
               style={{ flex: 1 }}
               onClick={() => {
                 if (!objection.trim()) {
-                  setError("Say what it got wrong.");
+                  setError(t.sayWhatItGotWrong);
                   return;
                 }
                 propose({ objection });
               }}
               disabled={busy}
             >
-              {busy ? "Thinking…" : "Send — try again"}
+              {busy ? t.thinking : t.sendTryAgain}
             </button>
             <button
               className="btn"

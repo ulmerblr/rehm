@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { dict } from "@/lib/i18n";
+import type { Lang } from "@/lib/lang";
 
-export default function KeyForm({ hasKey }: { hasKey: boolean }) {
+export default function KeyForm({ hasKey, lang }: { hasKey: boolean; lang: Lang }) {
+  const t = dict(lang);
   const router = useRouter();
   const [apiKey, setApiKey] = useState("");
   const [label, setLabel] = useState("");
@@ -15,7 +18,7 @@ export default function KeyForm({ hasKey }: { hasKey: boolean }) {
     setError(null);
     setOk(null);
     if (!apiKey.trim()) {
-      setError("Enter your API key.");
+      setError(t.enterYourKey);
       return;
     }
     setBusy(true);
@@ -26,7 +29,7 @@ export default function KeyForm({ hasKey }: { hasKey: boolean }) {
         body: JSON.stringify({ apiKey, label }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.message || "Could not save key.");
+      if (!res.ok) throw new Error(data?.message || t.couldNotSaveKey);
       setApiKey("");
       setLabel("");
       setOk(`Saved and verified · ends ${data.lastFour}`);
@@ -41,7 +44,7 @@ export default function KeyForm({ hasKey }: { hasKey: boolean }) {
   return (
     <div className="stack">
       <div>
-        <label htmlFor="apiKey">{hasKey ? "Replace API key" : "API key"}</label>
+        <label htmlFor="apiKey">{hasKey ? t.replaceApiKey : "API key"}</label>
         <input
           id="apiKey"
           type="password"
@@ -52,23 +55,22 @@ export default function KeyForm({ hasKey }: { hasKey: boolean }) {
         />
       </div>
       <div>
-        <label htmlFor="label">Label (optional)</label>
+        <label htmlFor="label">{t.labelOptional}</label>
         <input
           id="label"
           type="text"
           value={label}
           onChange={(e) => setLabel(e.target.value)}
-          placeholder="e.g. personal"
+          placeholder={t.labelPlaceholder}
         />
       </div>
       {error && <p className="notice">{error}</p>}
       {ok && <p className="stamp">{ok}</p>}
       <button className="btn btn-primary btn-lg" onClick={save} disabled={busy}>
-        {busy ? "Verifying…" : hasKey ? "Replace key" : "Save key"}
+        {busy ? t.verifying : hasKey ? t.replaceKey : t.saveKey}
       </button>
       <p className="muted" style={{ fontSize: "0.9rem" }}>
-        The key is verified with one call, then encrypted. It is never shown again and never leaves
-        the server except to call Anthropic on your behalf.
+        {t.keyNote}
       </p>
     </div>
   );

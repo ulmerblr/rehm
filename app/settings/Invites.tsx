@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { dict } from "@/lib/i18n";
+import type { Lang } from "@/lib/lang";
 
 export type InviteRow = {
   id: string;
@@ -14,8 +16,9 @@ export type InviteRow = {
 // Issue and manage single-use invitations. The point of the screen is one
 // paste-able message — the link carries the code, so the person you send it to
 // doesn't have to retype anything.
-export default function Invites({ invites, origin }: { invites: InviteRow[]; origin: string }) {
+export default function Invites({ invites, origin, lang }: { invites: InviteRow[]; origin: string; lang: Lang }) {
   const router = useRouter();
+  const t = dict(lang);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -31,7 +34,7 @@ export default function Invites({ invites, origin }: { invites: InviteRow[]; ori
       setCopied(kind);
       setTimeout(() => setCopied(null), 2000);
     } catch {
-      setError("Couldn't copy — select the text and copy it by hand.");
+      setError(t.couldNotCopy);
     }
   }
 
@@ -72,7 +75,7 @@ export default function Invites({ invites, origin }: { invites: InviteRow[]; ori
   return (
     <div>
       <button className="btn" onClick={create} disabled={busy}>
-        {busy ? "Working…" : "Create an invitation"}
+        {busy ? t.working : t.createInvitation}
       </button>
       {error && <p className="notice" style={{ marginTop: 12 }}>{error}</p>}
 
@@ -84,10 +87,10 @@ export default function Invites({ invites, origin }: { invites: InviteRow[]; ori
                 <span className="run-dreams">{inv.code}</span>
                 <span className={inv.status === "open" ? "stamp stamp-flag" : "stamp stamp-machine"}>
                   {inv.status === "open"
-                    ? "unused"
+                    ? t.unused
                     : inv.status === "used"
-                      ? `used ${inv.usedAt?.slice(0, 10) ?? ""}`
-                      : "revoked"}
+                      ? t.used(inv.usedAt ? t.formatDate(inv.usedAt) : "")
+                      : t.revoked}
                 </span>
               </div>
 
@@ -97,16 +100,16 @@ export default function Invites({ invites, origin }: { invites: InviteRow[]; ori
                     className="btn btn-sm"
                     onClick={() => copy(`msg-${inv.id}`, messageFor(inv.code))}
                   >
-                    {copied === `msg-${inv.id}` ? "Copied ✓" : "Copy message"}
+                    {copied === `msg-${inv.id}` ? t.copied : t.copyMessage}
                   </button>
                   <button
                     className="btn btn-sm"
                     onClick={() => copy(`link-${inv.id}`, linkFor(inv.code))}
                   >
-                    {copied === `link-${inv.id}` ? "Copied ✓" : "Copy link"}
+                    {copied === `link-${inv.id}` ? t.copied : t.copyLink}
                   </button>
                   <button className="linklike stamp" onClick={() => revoke(inv.id)} disabled={busy}>
-                    revoke
+                    {t.revoke}
                   </button>
                 </div>
               )}

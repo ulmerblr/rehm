@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { dict } from "@/lib/i18n";
+import type { Lang } from "@/lib/lang";
 
 // Two-step, deliberate delete. The first click only reveals the confirmation —
 // destroying a dream is permanent and takes its restatement, analyses, and any
@@ -9,11 +11,14 @@ import { useRouter } from "next/navigation";
 export default function DeleteDream({
   dreamId,
   sequenceNo,
+  lang,
 }: {
   dreamId: string;
   sequenceNo: number;
+  lang: Lang;
 }) {
   const router = useRouter();
+  const t = dict(lang);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +56,7 @@ export default function DeleteDream({
       </p>
       <div className="row" style={{ gap: 10 }}>
         <button className="btn btn-danger" onClick={del} disabled={busy}>
-          {busy ? "Deleting…" : "Yes, delete permanently"}
+          {busy ? t.deleting : t.confirmDelete}
         </button>
         <button
           className="btn"

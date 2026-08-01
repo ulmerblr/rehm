@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireUserId } from "@/lib/session";
 import { listTrendRuns, listDreamDates, listDreams, type TrendRun } from "@/lib/queries";
-import { formatDreamNumbers, formatStamp } from "@/lib/scope";
+import { formatDreamNumbers } from "@/lib/scope";
 import ExportButton from "@/app/components/ExportButton";
 import TrendRunner from "./TrendRunner";
 import { resolveView } from "@/lib/viewLang";
@@ -30,16 +30,13 @@ export default async function Trends() {
   return (
     <main>
       <h1>{t.trends}</h1>
-      <p className="machine">
-        Every claim cites the dreams it rests on. Each pass is kept at the size it
-        was drawn from, so a claim made at 9 dreams can be checked against 20.
-      </p>
+      <p className="machine">{t.trendsIntro}</p>
 
       <div style={{ margin: "22px 0 34px" }}>
         {dreams.length === 0 ? (
-          <p className="said">Record a dream first — there is nothing to read across yet.</p>
+          <p className="said">{t.nothingLoggedYet}</p>
         ) : (
-          <TrendRunner dreams={dreams} analyzedCount={analyzedCount} />
+          <TrendRunner dreams={dreams} analyzedCount={analyzedCount} lang={view.lang} />
         )}
       </div>
 
@@ -52,14 +49,14 @@ export default async function Trends() {
               <summary>
                 <span className="run-dreams">
                   {run.dreamNumbers.length > 0
-                    ? `Dreams ${formatDreamNumbers(run.dreamNumbers)}`
+                    ? t.dreamsPrefix(formatDreamNumbers(run.dreamNumbers))
                     : run.scopeLabel}
                 </span>
                 <span className="stamp">
                   {run.source === "dreams_and_analyses"
-                    ? "read dreams and analyses"
-                    : "read dreams only"}{" "}
-                  · {formatStamp(run.createdAt)}
+                    ? t.readDreamsAndAnalyses
+                    : t.readDreamsOnly}{" "}
+                  · {t.formatDate(run.createdAt)}
                 </span>
               </summary>
 
@@ -72,7 +69,7 @@ export default async function Trends() {
 
                 <div style={{ marginTop: 18 }}>
                   {run.claims.length === 0 ? (
-                    <p className="stamp">no cited claims</p>
+                    <p className="stamp">{t.noCitedClaims}</p>
                   ) : (
                     run.claims.map((c, i) => (
                       <div key={c.id || i} className="claim">
@@ -94,7 +91,7 @@ export default async function Trends() {
                 {run.closing && (
                   <div className="closing">
                     <div className="stamp stamp-machine" style={{ marginBottom: 8 }}>
-                      in sum
+                      {t.inSum}
                     </div>
                     <div className="machine" style={{ whiteSpace: "pre-wrap" }}>
                       {display(run.closing, tr, "trend_closing", run.id).text}
@@ -103,10 +100,11 @@ export default async function Trends() {
                 )}
 
                 <div className="stamp stamp-machine" style={{ marginTop: 20 }}>
-                  at {run.corpusSize} dream{run.corpusSize === 1 ? "" : "s"} · {run.scopeLabel} · {run.model} · {run.promptVersion}
+                  {t.atNDreams(run.corpusSize)} · {run.scopeLabel} · {run.model} ·{" "}
+                  {run.promptVersion}
                 </div>
                 <div style={{ marginTop: 14 }}>
-                  <ExportButton text={buildTrendExport(run)} label="Copy as text" />
+                  <ExportButton text={buildTrendExport(run)} label={t.copyAsText} copiedLabel={t.copied} />
                 </div>
               </div>
             </details>

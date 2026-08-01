@@ -65,32 +65,33 @@ export default async function Settings() {
       <h2>{t.apiKey}</h2>
       {key ? (
         <div className="stamp" style={{ marginBottom: 14 }}>
-          {key.label ? `${key.label} · ` : ""}ends {key.lastFour} ·{" "}
-          {key.lastVerifiedAt ? `last worked ${key.lastVerifiedAt.slice(0, 10)}` : "not yet used"}
+          {t.keyEnds(
+            key.label ?? "",
+            key.lastFour,
+            key.lastVerifiedAt ? t.formatDate(key.lastVerifiedAt) : t.notYetUsed
+          )}
         </div>
       ) : (
         <p className="machine" style={{ marginTop: 0 }}>
-          No key on file. Add one to generate restatements, analyses, and trends.
+          {t.noKeyOnFile}
         </p>
       )}
-      <KeyForm hasKey={!!key} />
+      <KeyForm hasKey={!!key} lang={view.lang} />
 
-      <h2>Getting a key</h2>
+      <h2>{t.gettingAKey}</h2>
       <p className="machine" style={{ marginTop: 0 }}>
         Create an API key at{" "}
         <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer">
           console.anthropic.com
         </a>{" "}
-        — sign in, open API keys, create one, and put a little credit on the account
-        under billing. Calls made here are billed there, to you.
+        — {t.gettingAKeyNote}
       </p>
 
-      <h2>Invitations</h2>
+      <h2>{t.invitations}</h2>
       <p className="machine" style={{ marginTop: 0 }}>
-        Each invitation works once. Copy the message, send it, and the link fills
-        the code in for them.
+        {t.invitationsNote}
       </p>
-      <Invites invites={invites} origin={origin} />
+      <Invites invites={invites} origin={origin} lang={view.lang} />
 
       <h2>{t.language}</h2>
       <LanguageSettings
@@ -107,10 +108,9 @@ export default async function Settings() {
 
       <h2>{t.maintenance}</h2>
       <p className="machine" style={{ marginTop: 0 }}>
-        Migrations apply automatically on deploy. This is a fallback for when
-        something looks wrong.
+        {t.maintenanceNote}
       </p>
-      <MigrateButton />
+      <MigrateButton lang={view.lang} />
     </main>
   );
 }

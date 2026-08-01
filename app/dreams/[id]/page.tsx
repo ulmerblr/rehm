@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUserId } from "@/lib/session";
 import { getDream, getRestatementState, getAnalyses, getAddenda } from "@/lib/queries";
-import { formatStamp } from "@/lib/scope";
 import ExportButton from "@/app/components/ExportButton";
 import RestatementLoop from "@/app/components/RestatementLoop";
 import DreamActions from "./DreamActions";
@@ -51,12 +50,12 @@ export default async function DreamPage({
     <main>
       <div className="row" style={{ justifyContent: "space-between", marginBottom: 18 }}>
         <span className="stamp">
-          dream {String(dream.sequenceNo).padStart(2, "0")}
-          {dream.dreamtOn ? ` · ${dream.dreamtOn}` : ""}
+          {String(dream.sequenceNo).padStart(2, "0")}
+          {dream.dreamtOn ? ` · ${t.formatDate(dream.dreamtOn)}` : ""}
           {dream.captureMethod ? ` · ${dream.captureMethod}` : ""}
         </span>
         <Link href="/dreams" className="stamp" style={{ textDecoration: "none" }}>
-          ← log
+          ← {t.log}
         </Link>
       </div>
 
@@ -66,6 +65,7 @@ export default async function DreamPage({
         isCustom={dream.titleIsCustom}
         displayTitle={display(dream.title, tr, "title", dream.id).text}
         translatedNote={t.machineTranslation}
+        lang={view.lang}
       />
 
       {/* Testimony. First, largest, unadorned — it is the document.
@@ -86,7 +86,7 @@ export default async function DreamPage({
           {addenda.map((a) => (
             <div key={a.addendumNo} className="addendum">
               <div className="stamp" style={{ marginBottom: 6 }}>
-                added {a.capturedAt ? formatStamp(a.capturedAt) : "later"}
+                {t.addedOn(a.capturedAt ? t.formatDate(a.capturedAt) : t.later)}
               </div>
               {(() => {
                 const body = display(a.body, tr, "addendum", a.id);
@@ -107,7 +107,7 @@ export default async function DreamPage({
       )}
 
       <div style={{ marginTop: 22 }}>
-        <AddAddendum dreamId={dream.id} />
+        <AddAddendum dreamId={dream.id} lang={view.lang} />
       </div>
 
       <h2>{t.restatement}</h2>
@@ -124,18 +124,18 @@ export default async function DreamPage({
 
           {restatement.turns.length > 0 && (
             <details style={{ marginTop: 18 }}>
-              <summary className="stamp">{restatement.turns.length} loop turns</summary>
+              <summary className="stamp">{t.loopTurns(restatement.turns.length)}</summary>
               <div className="stack" style={{ marginTop: 14 }}>
-                {restatement.turns.map((t) => (
-                  <div key={t.turnNo}>
+                {restatement.turns.map((turn) => (
+                  <div key={turn.turnNo}>
                     <div
-                      className={t.role === "objection" ? "stamp" : "stamp stamp-machine"}
+                      className={turn.role === "objection" ? "stamp" : "stamp stamp-machine"}
                       style={{ marginBottom: 6 }}
                     >
-                      {t.turnNo} · {t.role === "objection" ? "you" : "machine"}
+                      {turn.turnNo} · {turn.role === "objection" ? t.you : t.machine}
                     </div>
-                    <div className={t.role === "objection" ? "turn-said" : "turn-machine"}>
-                      {t.body}
+                    <div className={turn.role === "objection" ? "turn-said" : "turn-machine"}>
+                      {turn.body}
                     </div>
                   </div>
                 ))}
@@ -146,23 +146,24 @@ export default async function DreamPage({
       ) : restatement ? (
         <>
           <p className="stamp stamp-flag" style={{ marginBottom: 14 }}>
-            open — not accepted
+            {t.openNotAccepted}
           </p>
           <RestatementLoop
             restatementId={restatement.id}
             dreamId={dream.id}
             initialProposal={restatement.latestProposal}
+            lang={view.lang}
           />
         </>
       ) : (
-        <p className="machine">No restatement.</p>
+        <p className="machine">{t.noRestatement}</p>
       )}
 
-      <h2>Analyses</h2>
+      <h2>{t.analyses}</h2>
       <p className="machine" style={{ marginTop: 0 }}>
-        Generated from the transcript alone. Re-runnable — each run is kept.
+        {t.analysesNote}
       </p>
-      <DreamActions dreamId={dream.id} />
+      <DreamActions dreamId={dream.id} lang={view.lang} />
       <div className="stack" style={{ marginTop: 18 }}>
         {analyses.length === 0 ? (
           <p className="stamp stamp-flag">{t.notAnalyzed}</p>
@@ -170,7 +171,7 @@ export default async function DreamPage({
           analyses.map((a) => (
             <div key={a.id} className="derived">
               <div className="stamp stamp-machine" style={{ marginBottom: 8 }}>
-                {a.createdAt.slice(0, 10)} · {a.model} · {a.promptVersion}
+                {t.formatDate(a.createdAt)} · {a.model} · {a.promptVersion}
                 {a.blind ? " · blind" : ""}
               </div>
               <div className="machine" style={{ whiteSpace: "pre-wrap" }}>
@@ -181,15 +182,14 @@ export default async function DreamPage({
         )}
       </div>
 
-      <h2>Export</h2>
-      <ExportButton text={exportText} label="Copy as text" />
+      <h2>{t.export}</h2>
+      <ExportButton text={exportText} label={t.copyAsText} copiedLabel={t.copied} />
 
-      <h2>Delete</h2>
+      <h2>{t.deleteHeading}</h2>
       <p className="machine" style={{ marginTop: 0 }}>
-        Permanent, and it takes the restatement, analyses, and any trend citations
-        with it. Copy the text first if you want a record.
+        {t.deleteNote}
       </p>
-      <DeleteDream dreamId={dream.id} sequenceNo={dream.sequenceNo} />
+      <DeleteDream dreamId={dream.id} sequenceNo={dream.sequenceNo} lang={view.lang} />
     </main>
   );
 }

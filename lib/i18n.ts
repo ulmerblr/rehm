@@ -115,6 +115,127 @@ export type Dict = {
   // The toggle
   viewIn: (lang: string) => string;
   machineTranslation: string;
+
+  // Dates
+  months: string[];
+  formatDate: (iso: string) => string;
+
+  // Dream page
+  analyses: string;
+  analysesNote: string;
+  runAnalysis: string;
+  noRestatement: string;
+  openNotAccepted: string;
+  loopTurns: (n: number) => string;
+  you: string;
+  machine: string;
+  addedOn: (when: string) => string;
+  later: string;
+  export: string;
+  copyAsText: string;
+  copied: string;
+  deleteHeading: string;
+  deleteNote: string;
+  confirmDelete: string;
+  deleting: string;
+  analyzedTimes: (n: number) => string;
+  failedRetry: string;
+  retry: string;
+
+  // Addenda
+  nothingToAdd: string;
+  whatCameBack: string;
+  adding: string;
+  addToThisDream: string;
+
+  // Title editing
+  dreamTitle: string;
+  titleCantBeEmpty: string;
+  saveTitle: string;
+  suggestOne: string;
+  addATitle: string;
+  edit: string;
+  thinking: string;
+
+  // Restatement loop
+  doesThisRestateIt: string;
+  getARestatement: string;
+  whatDidItGetWrong: string;
+  objectionPlaceholder: string;
+  sayWhatItGotWrong: string;
+  sendTryAgain: string;
+  savedAsDream: (n: number) => string;
+  openTheDream: string;
+  toContinueLater: string;
+
+  // Trends
+  trendsIntro: string;
+  read: string;
+  readDreams: string;
+  readPlusAnalyses: string;
+  readDreamsNote: string;
+  readNoneAnalyzed: string;
+  readPlusNote: (n: number) => string;
+  scope: string;
+  scopeAll: string;
+  scopeLastN: string;
+  scopeDates: string;
+  oneFewer: string;
+  oneMore: string;
+  inThisPass: (label: string, n: number) => string;
+  noneInRange: string;
+  pickADate: string;
+  readEverything: string;
+  readingBatch: (i: number, total: number) => string;
+  resume: string;
+  passDidNotFinish: string;
+  details: string;
+  pastWeek: string;
+  pastMonth: string;
+  pastYear: string;
+  from: string;
+  to: string;
+  dreamsUnit: (n: number) => string;
+  dreamsPrefix: (numbers: string) => string;
+  readDreamsOnly: string;
+  readDreamsAndAnalyses: string;
+  noCitedClaims: string;
+  inSum: string;
+  atNDreams: (n: number) => string;
+  allDreams: string;
+  lastNDreams: (n: number) => string;
+  since: (d: string) => string;
+  upTo: (d: string) => string;
+
+  // Settings extras
+  gettingAKey: string;
+  gettingAKeyNote: string;
+  invitations: string;
+  invitationsNote: string;
+  maintenanceNote: string;
+  enterYourKey: string;
+  couldNotSaveKey: string;
+  replaceApiKey: string;
+  labelOptional: string;
+  labelPlaceholder: string;
+  verifying: string;
+  replaceKey: string;
+  saveKey: string;
+  keyNote: string;
+  noKeyOnFile: string;
+  keyEnds: (label: string, four: string, when: string) => string;
+  notYetUsed: string;
+  applyMigrations: string;
+  checking: string;
+  createInvitation: string;
+  working: string;
+  copyMessage: string;
+  copyLink: string;
+  couldNotCopy: string;
+  unused: string;
+  used: (when: string) => string;
+  revoked: string;
+  revoke: string;
 };
 
 const en: Dict = {
@@ -222,6 +343,134 @@ const en: Dict = {
 
   viewIn: (lang) => `View in ${lang}`,
   machineTranslation: "machine translation",
+
+  months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+  formatDate: (iso) => {
+    const raw = String(iso ?? "");
+    const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return raw;
+    const [, y, mo, d] = m;
+    return `${en.months[Number(mo) - 1] ?? mo} ${Number(d)}, ${y}`;
+  },
+
+  analyses: "Analyses",
+  analysesNote: "Generated from the transcript alone. Re-runnable — each run is kept.",
+  runAnalysis: "Run analysis",
+  noRestatement: "No restatement.",
+  openNotAccepted: "open — not accepted",
+  loopTurns: (n) => (n === 1 ? "1 loop turn" : `${n} loop turns`),
+  you: "you",
+  machine: "machine",
+  addedOn: (when) => `added ${when}`,
+  later: "later",
+  export: "Export",
+  copyAsText: "Copy as text",
+  copied: "Copied ✓",
+  deleteHeading: "Delete",
+  deleteNote:
+    "Permanent, and it takes the restatement, analyses, and any trend citations with it. Copy the text first if you want a record.",
+  confirmDelete: "Yes, delete permanently",
+  deleting: "Deleting…",
+  analyzedTimes: (n) => (n > 1 ? `analyzed ×${n}` : "analyzed"),
+  failedRetry: "failed",
+  retry: "retry",
+
+  nothingToAdd: "Nothing to add.",
+  whatCameBack: "What came back to you…",
+  adding: "Adding…",
+  addToThisDream: "Add to this dream",
+
+  dreamTitle: "Dream title",
+  titleCantBeEmpty: "Title can't be empty.",
+  saveTitle: "Save title",
+  suggestOne: "Suggest one",
+  addATitle: "Add a title",
+  edit: "Edit",
+  thinking: "Thinking…",
+
+  doesThisRestateIt: "Does this restate it?",
+  getARestatement: "Get a restatement",
+  whatDidItGetWrong: "What did it get wrong?",
+  objectionPlaceholder: "It said… but actually…",
+  sayWhatItGotWrong: "Say what it got wrong.",
+  sendTryAgain: "Send — try again",
+  savedAsDream: (n) => `Saved as dream ${n}.`,
+  openTheDream: "Open the dream",
+  toContinueLater: "to continue later.",
+
+  trendsIntro:
+    "Every claim cites the dreams it rests on. Each pass is kept at the size it was drawn from, so a claim made at 9 dreams can be checked against 20.",
+  read: "Read",
+  readDreams: "Dreams",
+  readPlusAnalyses: "+ Analyses",
+  readDreamsNote: "Trends drawn from what you actually said.",
+  readNoneAnalyzed: "No dreams are analyzed yet — this will read the same as Dreams.",
+  readPlusNote: (n) =>
+    `Also reads each dream's latest analysis (${n} analyzed). Richer, but it can find patterns in its own earlier readings.`,
+  scope: "Scope",
+  scopeAll: "All",
+  scopeLastN: "Last N",
+  scopeDates: "Dates",
+  oneFewer: "One fewer dream",
+  oneMore: "One more dream",
+  inThisPass: (label, n) =>
+    `${label} — ${n === 1 ? "1 dream" : `${n} dreams`} in this pass.`,
+  noneInRange: "No dreams fall in that range.",
+  pickADate: "Pick a start or end date.",
+  readEverything: "Read everything. Drawing the trends together…",
+  readingBatch: (i, total) => `Reading — batch ${i} of ${total}.`,
+  resume: "Resume",
+  passDidNotFinish: "The pass did not finish. Press Resume to continue.",
+  details: "Details",
+  pastWeek: "Past week",
+  pastMonth: "Past month",
+  pastYear: "Past year",
+  from: "From",
+  to: "To",
+  dreamsUnit: (n) => (n === 1 ? "dream" : "dreams"),
+  dreamsPrefix: (numbers) => `Dreams ${numbers}`,
+  readDreamsOnly: "read dreams only",
+  readDreamsAndAnalyses: "read dreams and analyses",
+  noCitedClaims: "no cited claims",
+  inSum: "in sum",
+  atNDreams: (n) => (n === 1 ? "at 1 dream" : `at ${n} dreams`),
+  allDreams: "All dreams",
+  lastNDreams: (n) => (n === 1 ? "Last dream" : `Last ${n} dreams`),
+  since: (d) => `Since ${d}`,
+  upTo: (d) => `Up to ${d}`,
+
+  gettingAKey: "Getting a key",
+  gettingAKeyNote:
+    "sign in, open API keys, create one, and put a little credit on the account under billing. Calls made here are billed there, to you.",
+  invitations: "Invitations",
+  invitationsNote:
+    "Each invitation works once. Copy the message, send it, and the link fills the code in for them.",
+  maintenanceNote:
+    "Migrations apply automatically on deploy. This is a fallback for when something looks wrong.",
+  enterYourKey: "Enter your API key.",
+  couldNotSaveKey: "Could not save key.",
+  replaceApiKey: "Replace API key",
+  labelOptional: "Label (optional)",
+  labelPlaceholder: "e.g. personal",
+  verifying: "Verifying…",
+  replaceKey: "Replace key",
+  saveKey: "Save key",
+  keyNote:
+    "The key is verified with one call, then encrypted. It is never shown again and never leaves the server except to call Anthropic on your behalf.",
+  noKeyOnFile: "No key on file. Add one to generate restatements, analyses, and trends.",
+  keyEnds: (label, four, when) => `${label ? `${label} · ` : ""}ends ${four} · ${when}`,
+  notYetUsed: "not yet used",
+  applyMigrations: "Apply pending migrations",
+  checking: "Checking…",
+  createInvitation: "Create an invitation",
+  working: "Working…",
+  copyMessage: "Copy message",
+  copyLink: "Copy link",
+  couldNotCopy: "Couldn't copy — select the text and copy it by hand.",
+  unused: "unused",
+  used: (when) => `used ${when}`,
+  revoked: "revoked",
+  revoke: "revoke",
 };
 
 const es: Dict = {
@@ -330,6 +579,136 @@ const es: Dict = {
 
   viewIn: (lang) => `Ver en ${lang}`,
   machineTranslation: "traducción automática",
+
+  months: ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"],
+  formatDate: (iso) => {
+    const raw = String(iso ?? "");
+    const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return raw;
+    const [, y, mo, d] = m;
+    return `${Number(d)} ${es.months[Number(mo) - 1] ?? mo} ${y}`;
+  },
+
+  analyses: "Análisis",
+  analysesNote:
+    "Se generan solo a partir de la transcripción. Se puede repetir — cada pasada se guarda.",
+  runAnalysis: "Analizar",
+  noRestatement: "Sin reformulación.",
+  openNotAccepted: "abierta — sin aceptar",
+  loopTurns: (n) => (n === 1 ? "1 vuelta" : `${n} vueltas`),
+  you: "tú",
+  machine: "máquina",
+  addedOn: (when) => `añadido ${when}`,
+  later: "después",
+  export: "Exportar",
+  copyAsText: "Copiar como texto",
+  copied: "Copiado ✓",
+  deleteHeading: "Borrar",
+  deleteNote:
+    "Es permanente, y se lleva la reformulación, los análisis y cualquier cita en los patrones. Copia el texto antes si quieres guardarlo.",
+  confirmDelete: "Sí, borrar para siempre",
+  deleting: "Borrando…",
+  analyzedTimes: (n) => (n > 1 ? `analizado ×${n}` : "analizado"),
+  failedRetry: "falló",
+  retry: "reintentar",
+
+  nothingToAdd: "No hay nada que añadir.",
+  whatCameBack: "Lo que te vino después…",
+  adding: "Añadiendo…",
+  addToThisDream: "Añadir a este sueño",
+
+  dreamTitle: "Título del sueño",
+  titleCantBeEmpty: "El título no puede estar vacío.",
+  saveTitle: "Guardar el título",
+  suggestOne: "Sugerir uno",
+  addATitle: "Poner un título",
+  edit: "Cambiar",
+  thinking: "Pensando…",
+
+  doesThisRestateIt: "¿Dice esto lo mismo?",
+  getARestatement: "Pedir una reformulación",
+  whatDidItGetWrong: "¿Qué entendió mal?",
+  objectionPlaceholder: "Dice… pero en realidad…",
+  sayWhatItGotWrong: "Di qué entendió mal.",
+  sendTryAgain: "Enviar — probar otra vez",
+  savedAsDream: (n) => `Guardado como sueño ${n}.`,
+  openTheDream: "Abrir el sueño",
+  toContinueLater: "para seguir más tarde.",
+
+  trendsIntro:
+    "Cada afirmación cita los sueños en los que se apoya. Cada pasada se guarda con el tamaño del que salió, así que algo dicho con 9 sueños se puede comprobar con 20.",
+  read: "Lee",
+  readDreams: "Sueños",
+  readPlusAnalyses: "+ Análisis",
+  readDreamsNote: "Patrones sacados de lo que dijiste de verdad.",
+  readNoneAnalyzed: "Todavía no hay ningún sueño analizado — leería lo mismo que Sueños.",
+  readPlusNote: (n) =>
+    `Lee también el último análisis de cada sueño (${n} analizados). Da más, pero puede encontrar patrones en sus propias lecturas anteriores.`,
+  scope: "Alcance",
+  scopeAll: "Todo",
+  scopeLastN: "Últimos N",
+  scopeDates: "Fechas",
+  oneFewer: "Un sueño menos",
+  oneMore: "Un sueño más",
+  inThisPass: (label, n) =>
+    `${label} — ${n === 1 ? "1 sueño" : `${n} sueños`} en esta pasada.`,
+  noneInRange: "Ningún sueño cae en ese rango.",
+  pickADate: "Elige una fecha de inicio o de fin.",
+  readEverything: "Todo leído. Juntando los patrones…",
+  readingBatch: (i, total) => `Leyendo — grupo ${i} de ${total}.`,
+  resume: "Continuar",
+  passDidNotFinish: "La pasada no terminó. Pulsa Continuar para seguir.",
+  details: "Detalles",
+  pastWeek: "Última semana",
+  pastMonth: "Último mes",
+  pastYear: "Último año",
+  from: "Desde",
+  to: "Hasta",
+  dreamsUnit: (n) => (n === 1 ? "sueño" : "sueños"),
+  dreamsPrefix: (numbers) => `Sueños ${numbers}`,
+  readDreamsOnly: "leyó solo los sueños",
+  readDreamsAndAnalyses: "leyó los sueños y los análisis",
+  noCitedClaims: "sin afirmaciones citadas",
+  inSum: "en resumen",
+  atNDreams: (n) => (n === 1 ? "con 1 sueño" : `con ${n} sueños`),
+  allDreams: "Todos los sueños",
+  lastNDreams: (n) => (n === 1 ? "Último sueño" : `Últimos ${n} sueños`),
+  since: (d) => `Desde ${d}`,
+  upTo: (d) => `Hasta ${d}`,
+
+  gettingAKey: "Conseguir una clave",
+  gettingAKeyNote:
+    "entra, abre API keys, crea una, y pon algo de saldo en la cuenta desde billing. Lo que se genere aquí se le cobra allí, a ti.",
+  invitations: "Invitaciones",
+  invitationsNote:
+    "Cada invitación sirve una sola vez. Copia el mensaje, mándalo, y el enlace les rellena el código.",
+  maintenanceNote:
+    "Las migraciones se aplican solas al desplegar. Esto es por si algo se ve mal.",
+  enterYourKey: "Escribe tu clave de la API.",
+  couldNotSaveKey: "No se pudo guardar la clave.",
+  replaceApiKey: "Cambiar la clave de la API",
+  labelOptional: "Etiqueta (opcional)",
+  labelPlaceholder: "p. ej. personal",
+  verifying: "Comprobando…",
+  replaceKey: "Cambiar la clave",
+  saveKey: "Guardar la clave",
+  keyNote:
+    "La clave se comprueba con una llamada y luego se cifra. No se vuelve a mostrar y no sale del servidor salvo para llamar a Anthropic en tu nombre.",
+  noKeyOnFile:
+    "No hay ninguna clave guardada. Añade una para generar reformulaciones, análisis y patrones.",
+  keyEnds: (label, four, when) => `${label ? `${label} · ` : ""}termina en ${four} · ${when}`,
+  notYetUsed: "sin usar todavía",
+  applyMigrations: "Aplicar las migraciones pendientes",
+  checking: "Comprobando…",
+  createInvitation: "Crear una invitación",
+  working: "Trabajando…",
+  copyMessage: "Copiar el mensaje",
+  copyLink: "Copiar el enlace",
+  couldNotCopy: "No se pudo copiar — selecciona el texto y cópialo a mano.",
+  unused: "sin usar",
+  used: (when) => `usada ${when}`,
+  revoked: "revocada",
+  revoke: "revocar",
 };
 
 const DICTS: Record<Lang, Dict> = { en, es };

@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { dict } from "@/lib/i18n";
+import type { Lang } from "@/lib/lang";
 
 type FileResult = { file: string; ok: boolean; skipped?: boolean; error?: string };
 
 // Break-glass only. Migrations already run automatically on every deploy; this
 // button just lets you re-check on demand if something ever looks off.
-export default function MigrateButton() {
+export default function MigrateButton({ lang }: { lang: Lang }) {
+  const t = dict(lang);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
@@ -42,7 +45,7 @@ export default function MigrateButton() {
   return (
     <div>
       <button className="btn" onClick={run} disabled={busy}>
-        {busy ? "Checking…" : "Apply pending migrations"}
+        {busy ? t.checking : t.applyMigrations}
       </button>
       {status && (
         <p className="muted" style={{ marginTop: 8 }}>

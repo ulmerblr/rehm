@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { clearPending, isPending, markPending } from "@/lib/pending";
+import { dict } from "@/lib/i18n";
+import type { Lang } from "@/lib/lang";
 
 // Analysis state as a mono stamp, not a pill. Unresolved uses --flag, which is
 // reserved for exactly that meaning; a finished analysis needs no colour at all
@@ -15,11 +17,14 @@ import { clearPending, isPending, markPending } from "@/lib/pending";
 export default function AnalyzeInline({
   dreamId,
   count,
+  lang,
 }: {
   dreamId: string;
   count: number;
+  lang: Lang;
 }) {
   const router = useRouter();
+  const t = dict(lang);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,20 +67,20 @@ export default function AnalyzeInline({
 
   if (count > 0) {
     return (
-      <span className="stamp stamp-machine">analyzed{count > 1 ? ` ×${count}` : ""}</span>
+      <span className="stamp stamp-machine">{t.analyzedTimes(count)}</span>
     );
   }
 
   if (busy) {
-    return <span className="stamp">analyzing</span>;
+    return <span className="stamp">{t.analyzing}</span>;
   }
 
   if (error) {
     return (
       <span className="stamp stamp-flag" title={error}>
-        failed —{" "}
+        {t.failedRetry} —{" "}
         <button className="linklike" onClick={run}>
-          retry
+          {t.retry}
         </button>
       </span>
     );
@@ -83,9 +88,9 @@ export default function AnalyzeInline({
 
   return (
     <span className="stamp stamp-flag">
-      not analyzed —{" "}
+      {t.notAnalyzed} —{" "}
       <button className="linklike" onClick={run}>
-        analyze
+        {t.analyze.toLowerCase()}
       </button>
     </span>
   );

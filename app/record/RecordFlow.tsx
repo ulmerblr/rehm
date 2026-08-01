@@ -61,16 +61,17 @@ export default function RecordFlow({
   if (ids) {
     return (
       <div>
-        <h2>Does this restate it?</h2>
+        <h2>{t.doesThisRestateIt}</h2>
         <RestatementLoop
           restatementId={ids.restatementId}
           dreamId={ids.dreamId}
           initialProposal={null}
           autoStart
+          lang={viewLang}
         />
         <p className="muted" style={{ marginTop: 16 }}>
-          Saved as Dream {sequenceNo}. <Link href={`/dreams/${ids.dreamId}`}>Open the dream</Link>{" "}
-          to continue later.
+          {t.savedAsDream(sequenceNo)}{" "}
+          <Link href={`/dreams/${ids.dreamId}`}>{t.openTheDream}</Link> {t.toContinueLater}
         </p>
       </div>
     );
