@@ -63,6 +63,18 @@ export default function TrendRunner({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        // A gateway timeout is produced by the platform, not the route, so it
+        // arrives with no body — say what it means and what to do about it.
+        if (res.status === 504 || res.status === 502) {
+          setDetail(
+            `The request hit the server's time limit before the pass finished (${res.status}).`
+          );
+          throw new Error(
+            inScope.length > 1
+              ? `Reading ${inScope.length} dreams took too long. Try a smaller scope — say the last ${Math.max(2, Math.floor(inScope.length / 2))}.`
+              : "That took too long to finish."
+          );
+        }
         if (data?.detail) setDetail(String(data.detail));
         throw new Error(data?.message || data?.error || `failed (${res.status})`);
       }

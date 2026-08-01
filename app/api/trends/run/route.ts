@@ -144,7 +144,13 @@ export async function POST(req: NextRequest) {
           content: `Here are ${corpusSize} dream(s) — the slice of the corpus selected as "${label}". Identify trends across them, citing dream numbers for every claim. Dreams are numbered by their position in the full corpus, so the numbers may not start at 1.\n\n${corpusText}`,
         },
       ],
-      output_config: { format: { type: "json_schema", schema: SCHEMA } },
+      // Effort is the main latency lever on this model. A trend pass has to
+      // finish inside the platform's function limit, and at full depth it
+      // doesn't once the corpus grows past a handful of dreams.
+      output_config: {
+        effort: "medium",
+        format: { type: "json_schema", schema: SCHEMA },
+      },
     });
     const message = await stream.finalMessage();
     if (message.stop_reason === "refusal") {
