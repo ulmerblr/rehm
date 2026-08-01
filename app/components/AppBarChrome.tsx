@@ -16,8 +16,9 @@ export default function AppBarChrome({ email }: { email: string | null }) {
   return (
     <header className="app-bar">
       <div className="app-bar-inner">
-        <Link href="/" className="wordmark">
-          rehm
+        <Link href="/" aria-label="rehm — home" className="lockup-link">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/lockup.png" alt="rehm" className="lockup" />
         </Link>
         {email ? (
           <Link href="/settings" className="who">

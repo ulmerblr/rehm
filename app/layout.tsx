@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Spectral, Archivo, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -30,7 +30,16 @@ import AppBar from "@/app/components/AppBar";
 export const metadata: Metadata = {
   metadataBase: new URL("https://rehm.xyzroot.com"),
   title: "rehm",
-  description: "rehm",
+  description: "A longitudinal dream study.",
+  // Home-screen shortcut opens standalone, titled with the mark alone.
+  appleWebApp: { capable: true, title: "rehm", statusBarStyle: "black-translucent" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0d1626",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 // The root layout renders (in the Node.js runtime) for every route, so this is

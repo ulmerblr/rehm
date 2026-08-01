@@ -15,7 +15,8 @@ export default async function Login({
   return (
     <main>
       <div style={{ textAlign: "center", margin: "24px 0 28px" }}>
-        <span className="wordmark wordmark-lg">rehm</span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/lockup.png" alt="rehm" className="lockup lockup-lg" />
       </div>
       <p className="machine">Sign in.</p>
       {error && <p className="notice">{message}</p>}

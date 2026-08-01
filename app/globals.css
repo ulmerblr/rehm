@@ -312,23 +312,22 @@ label {
   gap: 12px;
 }
 
-/* The wordmark is set in the app's own testimony serif rather than shipped as
-   artwork: it renders identically everywhere, scales without a second asset,
-   and puts the app's name on the dreamer's side of the type system. */
-.wordmark {
-  font-family: var(--font-said-stack);
-  font-weight: 600;
-  font-size: 1.375rem;
-  line-height: 1;
-  letter-spacing: -0.012em;
-  color: var(--said);
-  text-decoration: none;
-  display: inline-block;
+/* The lockup ships as a single cream-on-transparent asset, cut from the
+   monochrome artwork, so it sits on the ink ground with no plate behind it. */
+.lockup-link {
+  display: block;
+  line-height: 0;
 }
 
-.wordmark-lg {
-  font-size: 2.75rem;
-  letter-spacing: -0.02em;
+.lockup {
+  display: block;
+  height: 22px;
+  width: auto;
+}
+
+.lockup-lg {
+  height: 46px;
+  margin: 0 auto;
 }
 
 .who {
