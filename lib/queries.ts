@@ -48,11 +48,19 @@ function deriveTitle(text: string): string {
   return title.endsWith("…") ? title : title.replace(/[.!?]+$/, "");
 }
 
+// The opening words of the transcript, for the list's secondary line. Kept
+// generously long — the row clamps it to exactly one line in CSS, so it adapts
+// to the screen width instead of guessing a character count.
+function deriveSnippet(text: string): string {
+  return String(text).replace(/\s+/g, " ").trim().slice(0, 200);
+}
+
 export type DreamListItem = {
   id: string;
   sequenceNo: number;
   dreamtOn: string | null;
   title: string;
+  snippet: string;
 };
 
 export async function listDreams(userId: string): Promise<DreamListItem[]> {
@@ -84,6 +92,7 @@ export async function listDreams(userId: string): Promise<DreamListItem[]> {
       // Prefer the saved (generated or edited) title; fall back to one derived
       // from the transcript for dreams that have no title row yet.
       title: stored || deriveTitle(r.raw_transcript as string),
+      snippet: deriveSnippet(r.raw_transcript as string),
     };
   });
 }

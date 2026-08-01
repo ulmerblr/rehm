@@ -275,9 +275,18 @@ summary {
 }
 
 .dream-title {
-  margin-top: 3px;
-  font-size: 1.05rem;
-  font-weight: 600;
+  font-size: 1.1rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Opening words of the transcript — exactly one line, never wraps. */
+.dream-snippet {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.95rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
