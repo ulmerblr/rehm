@@ -238,6 +238,14 @@ export type Dict = {
   revoke: string;
   deleteInvite: string;
   deleteInviteConfirm: string;
+  usedBy: (who: string, when: string) => string;
+
+  // Who brought whom
+  whoInvitedWhom: string;
+  standingsNote: string;
+  broughtCount: (n: number) => string;
+  youMarker: string;
+  invitedByLabel: (who: string) => string;
 
   // First-run setup
   setupTitle: string;
@@ -500,6 +508,14 @@ const en: Dict = {
   revoke: "revoke",
   deleteInvite: "delete",
   deleteInviteConfirm: "Remove this invitation from the list?",
+  usedBy: (who, when) => `used by ${who} · ${when}`,
+
+  whoInvitedWhom: "Who brought whom",
+  standingsNote:
+    "Everyone here arrived through someone's invitation. Deleting an invitation from your list doesn't change this — it's recorded on the account.",
+  broughtCount: (n) => (n === 1 ? "brought 1" : `brought ${n}`),
+  youMarker: "you",
+  invitedByLabel: (who) => `invited by ${who}`,
 
   setupTitle: "Two things before you start",
   setupLead:
@@ -770,6 +786,14 @@ const es: Dict = {
   revoke: "revocar",
   deleteInvite: "borrar",
   deleteInviteConfirm: "¿Quitar esta invitación de la lista?",
+  usedBy: (who, when) => `la usó ${who} · ${when}`,
+
+  whoInvitedWhom: "Quién trajo a quién",
+  standingsNote:
+    "Todo el mundo aquí llegó por la invitación de alguien. Borrar una invitación de tu lista no cambia esto — queda anotado en la cuenta.",
+  broughtCount: (n) => (n === 1 ? "trajo a 1" : `trajo a ${n}`),
+  youMarker: "tú",
+  invitedByLabel: (who) => `invitación de ${who}`,
 
   setupTitle: "Dos cosas antes de empezar",
   setupLead:

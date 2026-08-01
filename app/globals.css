@@ -9,24 +9,36 @@
  * Every value below derives from the tokens. Nothing ad-hoc. */
 
 :root {
-  /* Surface — deep ink navy. The cold ground is the point: warm testimony
-     advances against it, cool machine text recedes into it. */
-  --ink: #16294a;
-  --ink-raised: #1e3560;
-  --rule: #2c4570;
+  /* Surface — ink navy, on the mark's own hue (218°). Lifted one step from the
+     near-black it started as, because the mark's blue is vivid and read as a
+     hole punched in the page against a ground that dark. The cold ground is
+     still the point: warm testimony advances against it, cool machine text
+     recedes into it.
 
-  /* The dreamer's own voice — warm cream. */
+     Raising the ground costs every foreground its contrast, so each one was
+     lifted by exactly the amount that restores the ratio it had before — same
+     hue, same saturation, more lightness. The palette therefore looks the same
+     and measures the same; only the ground moved. The floor is 5:1, a
+     deliberate margin over AA's 4.5, since the smallest role here is 11px.
+     Run scripts/check-contrast.ts before touching any of these. */
+  --ink: #1d3662;
+  --ink-raised: #264278;
+  --rule: #355387;
+
+  /* The dreamer's own voice — warm cream. The one token that can't be restored
+     in full: it was 11.9:1 and cream has nowhere left to go without turning
+     white. 9.8:1 is far above anything that matters. */
   --said: #efe8dc;
-  --said-dim: #a99f8c;
+  --said-dim: #b8b0a1;
 
   /* Machine-generated. Cooler, quieter, closer to the ground. */
-  --machine: #94a6be;
-  --machine-dim: #8098b8;
+  --machine: #a9b7cb;
+  --machine-dim: #96aac4;
 
   /* Exactly one accent: primary action and active navigation. */
-  --brass: #d69b4c;
+  --brass: #deb071;
   /* Unresolved state only. Never decorative, never a second accent. */
-  --flag: #d98570;
+  --flag: #e09b89;
 
   --font-said-stack: var(--font-said), Georgia, "Times New Roman", serif;
   --font-ui-stack: var(--font-ui), "Helvetica Neue", Arial, sans-serif;
@@ -163,6 +175,17 @@ a {
   flex-wrap: wrap;
 }
 
+/* Text controls that belong together at the end of a row. They stay on one
+   line as a pair — a "revoke" and a "delete" that wrap apart read as two
+   unrelated decisions, and the second one strands itself on a line of its own
+   where it looks like the loudest thing on the card. */
+.row-end {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+}
+
 .stack > * + * {
   margin-top: 14px;
 }
@@ -239,6 +262,22 @@ button.btn {
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+/* `font: inherit` above is a shorthand, so it resets font-size and family —
+   and it sits after .stamp in this file, which means .stamp's 11px mono lost
+   every time the two were used together. What survived was .stamp's uppercase
+   and letter-spacing at page size: a quiet secondary control rendering as the
+   loudest text on the card. Restore the stamp for the pairing. */
+.linklike.stamp {
+  font-family: var(--font-data-stack);
+  font-size: 0.6875rem;
+  font-weight: 400;
+  line-height: 1.27;
+  /* .linklike's `color: inherit` also outranked .stamp, so these came out in
+     full-strength cream. They are all secondary — cancel, revoke, delete — and
+     belong at stamp weight. */
+  color: var(--said-dim);
 }
 
 /* Form controls */

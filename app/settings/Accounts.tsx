@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { dict } from "@/lib/i18n";
+import { displayNames } from "@/lib/names";
 import type { Lang } from "@/lib/lang";
 import type { AccountRow } from "@/lib/queries";
 
@@ -28,6 +29,13 @@ export default function Accounts({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+
+  // Each row already shows the address in full; the referrer is a passing
+  // mention, so it gets the short name — widened only if two of them collide.
+  const names = useMemo(
+    () => displayNames(accounts.map((a) => a.email)),
+    [accounts]
+  );
 
   async function remove(id: string) {
     setError(null);
@@ -68,6 +76,11 @@ export default function Accounts({
               </span>
               <span className="stamp stamp-machine">{t.dreamsCount(a.dreams)}</span>
               <span className="stamp stamp-machine">{t.formatDate(a.createdAt)}</span>
+              {a.invitedByEmail && (
+                <span className="stamp stamp-machine">
+                  {t.invitedByLabel(names.get(a.invitedByEmail) ?? a.invitedByEmail)}
+                </span>
+              )}
             </div>
 
             {/* The owner can't be removed: an instance with nobody to administer

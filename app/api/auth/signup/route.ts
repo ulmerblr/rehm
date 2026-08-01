@@ -62,10 +62,11 @@ export async function POST(req: NextRequest) {
       UPDATE invites SET used_at = now()
       WHERE code = ${normalizeInviteCode(code)}
         AND used_at IS NULL AND revoked_at IS NULL
-      RETURNING id
-    `) as Array<{ id: string }>;
+      RETURNING id, created_by
+    `) as Array<{ id: string; created_by: string }>;
     if (claimed.length === 0) return back(req, "invite");
     claimedInviteId = claimed[0].id;
+    const inviterId = claimed[0].created_by;
 
     const passwordHash = await bcrypt.hash(password, 12);
     const inserted = (await sql`
@@ -85,6 +86,16 @@ export async function POST(req: NextRequest) {
 
     await sql`UPDATE invites SET used_by = ${inserted[0].id} WHERE id = ${claimedInviteId}`;
     claimedInviteId = null; // redeemed for real; nothing to give back
+
+    // Who brought them, recorded on the account rather than left to be joined
+    // out of invites — the invitations list can be tidied up, and this has to
+    // survive that (0022). Best-effort: an account that exists and can sign in
+    // is worth more than its referrer, so a failure here is logged, not fatal.
+    try {
+      await sql`UPDATE users SET invited_by = ${inviterId} WHERE id = ${inserted[0].id}`;
+    } catch (e) {
+      console.error("[rehm] invited_by not recorded:", e instanceof Error ? e.message : e);
+    }
 
     // Straight to setup: language has to be settled before the first dream, and
     // nothing generates without a key.

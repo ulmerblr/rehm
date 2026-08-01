@@ -130,6 +130,8 @@ export type InviteListItem = {
   status: "open" | "used" | "revoked";
   createdAt: string;
   usedAt: string | null;
+  /** Who redeemed it. Your own invitation, so this is yours to see. */
+  usedByEmail: string | null;
 };
 
 // Invitations this user issued, newest first. Degrades to empty if the table
@@ -138,9 +140,11 @@ export async function listInvites(userId: string): Promise<InviteListItem[]> {
   const sql = getSql();
   try {
     const rows = (await sql`
-      SELECT id, code, used_at, revoked_at, created_at
-      FROM invites WHERE created_by = ${userId}
-      ORDER BY created_at DESC
+      SELECT i.id, i.code, i.used_at, i.revoked_at, i.created_at, u.email AS used_by_email
+      FROM invites i
+      LEFT JOIN users u ON u.id = i.used_by
+      WHERE i.created_by = ${userId}
+      ORDER BY i.created_at DESC
     `) as Array<Record<string, unknown>>;
     return rows.map((r) => ({
       id: String(r.id),
@@ -148,6 +152,44 @@ export async function listInvites(userId: string): Promise<InviteListItem[]> {
       status: inviteStatus(r as { used_at: unknown; revoked_at: unknown }),
       createdAt: toIso(r.created_at) ?? "",
       usedAt: toIso(r.used_at),
+      usedByEmail: r.used_by_email == null ? null : String(r.used_by_email),
+    }));
+  } catch (err) {
+    if (!isMissingSchema(err)) throw err;
+    return [];
+  }
+}
+
+export type StandingRow = {
+  email: string;
+  invited: number;
+  isSelf: boolean;
+};
+
+/**
+ * Who has brought the most people in, most first.
+ *
+ * Read from users.invited_by rather than from invites, so tidying the
+ * invitations list never changes the standings (0022). Only accounts that have
+ * actually invited someone appear — this is a tally, not a roster, and it is
+ * the one place account names are shown to people who are not the owner, so it
+ * shows no more than the tally needs.
+ */
+export async function inviteStandings(viewerId: string): Promise<StandingRow[]> {
+  const sql = getSql();
+  try {
+    const rows = (await sql`
+      SELECT inviter.id, inviter.email, count(u.id)::int AS invited,
+             max(u.created_at) AS latest
+      FROM users inviter
+      JOIN users u ON u.invited_by = inviter.id
+      GROUP BY inviter.id, inviter.email
+      ORDER BY invited DESC, latest DESC
+    `) as Array<Record<string, unknown>>;
+    return rows.map((r) => ({
+      email: String(r.email),
+      invited: toInt(r.invited),
+      isSelf: String(r.id) === viewerId,
     }));
   } catch (err) {
     if (!isMissingSchema(err)) throw err;
@@ -162,6 +204,8 @@ export type AccountRow = {
   createdAt: string;
   dreams: number;
   isSelf: boolean;
+  /** Who brought them in. Null for the owner and for anyone who predates 0022. */
+  invitedByEmail: string | null;
 };
 
 /**
@@ -173,9 +217,10 @@ export async function listAccounts(viewerId: string): Promise<AccountRow[]> {
   const sql = getSql();
   try {
     const rows = (await sql`
-      SELECT u.id, u.email, u.role, u.created_at,
+      SELECT u.id, u.email, u.role, u.created_at, inviter.email AS invited_by_email,
              (SELECT count(*)::int FROM dreams d WHERE d.user_id = u.id) AS dreams
       FROM users u
+      LEFT JOIN users inviter ON inviter.id = u.invited_by
       ORDER BY u.created_at ASC
     `) as Array<Record<string, unknown>>;
     return rows.map((r) => ({
@@ -185,6 +230,7 @@ export async function listAccounts(viewerId: string): Promise<AccountRow[]> {
       createdAt: toIso(r.created_at) ?? "",
       dreams: toInt(r.dreams),
       isSelf: String(r.id) === viewerId,
+      invitedByEmail: r.invited_by_email == null ? null : String(r.invited_by_email),
     }));
   } catch (err) {
     if (!isMissingSchema(err)) throw err;

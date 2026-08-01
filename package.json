@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "migrate": "node scripts/migrate.mjs",
-    "verify": "node scripts/verify.mjs"
+    "verify": "node scripts/verify.mjs",
+    "check": "npx tsx scripts/check-i18n.ts && npx tsx scripts/check-contrast.ts && npx tsx scripts/check-lang-contrast.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.115.0",

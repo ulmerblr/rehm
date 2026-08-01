@@ -73,6 +73,9 @@ credential. See `migrations/OWNER_ROLE.md` for the owner-pin mechanism.
 - `npm run migrate` — apply pending migrations. Runs as the **owner**; refuses
   to run as `rehm_app`.
 - `npm run verify` — prove the append-only model. Runs as **`rehm_app`**.
+- `npm run check` — no database needed. Dictionary parity between the two
+  languages, the translation wiring, and every colour token against the ground
+  it is read on. Each of these guards something that has already broken once.
 
 ## Auth, scoping, and bring-your-own-key
 

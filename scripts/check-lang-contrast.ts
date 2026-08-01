@@ -30,8 +30,8 @@ const ratio = (a: number[], b: number[]) => {
   return (x + 0.05) / (y + 0.05);
 };
 
-const INK = hex("#16294a");
-const BRASS = hex("#d69b4c");
+const INK = hex("#1d3662");
+const BRASS = hex("#deb071");
 
 // Every colour that appears in either flag.
 const BANDS: Record<string, string> = {

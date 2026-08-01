@@ -11,6 +11,8 @@ export type InviteRow = {
   status: "open" | "used" | "revoked";
   createdAt: string;
   usedAt: string | null;
+  /** Who redeemed it, already resolved to a display name by the server. */
+  usedByName: string | null;
 };
 
 // Issue and manage single-use invitations. The point of the screen is one
@@ -109,38 +111,23 @@ export default function Invites({ invites, origin, lang }: { invites: InviteRow[
                   {inv.status === "open"
                     ? t.unused
                     : inv.status === "used"
-                      ? t.used(inv.usedAt ? t.formatDate(inv.usedAt) : "")
+                      ? inv.usedByName
+                        ? t.usedBy(inv.usedByName, inv.usedAt ? t.formatDate(inv.usedAt) : "")
+                        : t.used(inv.usedAt ? t.formatDate(inv.usedAt) : "")
                       : t.revoked}
                 </span>
               </div>
 
-              <div className="row" style={{ gap: 10, marginTop: 12 }}>
-                {inv.status === "open" && (
-                  <>
-                    <button
-                      className="btn btn-sm"
-                      onClick={() => copy(`msg-${inv.id}`, messageFor(inv.code))}
-                    >
-                      {copied === `msg-${inv.id}` ? t.copied : t.copyMessage}
-                    </button>
-                    <button
-                      className="btn btn-sm"
-                      onClick={() => copy(`link-${inv.id}`, linkFor(inv.code))}
-                    >
-                      {copied === `link-${inv.id}` ? t.copied : t.copyLink}
-                    </button>
-                    <button
-                      className="linklike stamp"
-                      onClick={() => revoke(inv.id)}
-                      disabled={busy}
-                    >
-                      {t.revoke}
-                    </button>
-                  </>
-                )}
-
-                {confirming === inv.id ? (
-                  <>
+              {/* While a delete is being confirmed the row shows nothing but
+                  the two answers to that question. Leaving copy and revoke
+                  sitting alongside invites a mis-tap on the one control here
+                  that can't be undone. */}
+              {confirming === inv.id ? (
+                <>
+                  <p className="machine" style={{ marginTop: 12 }}>
+                    {t.deleteInviteConfirm}
+                  </p>
+                  <div className="row" style={{ gap: 10, marginTop: 10 }}>
                     <button
                       className="btn btn-danger btn-sm"
                       onClick={() => remove(inv.id)}
@@ -155,22 +142,41 @@ export default function Invites({ invites, origin, lang }: { invites: InviteRow[
                     >
                       {t.cancel}
                     </button>
-                  </>
-                ) : (
-                  <button
-                    className="linklike stamp"
-                    onClick={() => setConfirming(inv.id)}
-                    disabled={busy}
-                  >
-                    {t.deleteInvite}
-                  </button>
-                )}
-              </div>
-
-              {confirming === inv.id && (
-                <p className="machine" style={{ marginTop: 8 }}>
-                  {t.deleteInviteConfirm}
-                </p>
+                  </div>
+                </>
+              ) : (
+                <div className="row" style={{ gap: 10, marginTop: 12 }}>
+                  {inv.status === "open" && (
+                    <>
+                      <button
+                        className="btn btn-sm"
+                        onClick={() => copy(`msg-${inv.id}`, messageFor(inv.code))}
+                      >
+                        {copied === `msg-${inv.id}` ? t.copied : t.copyMessage}
+                      </button>
+                      <button
+                        className="btn btn-sm"
+                        onClick={() => copy(`link-${inv.id}`, linkFor(inv.code))}
+                      >
+                        {copied === `link-${inv.id}` ? t.copied : t.copyLink}
+                      </button>
+                    </>
+                  )}
+                  <span className="row-end">
+                    {inv.status === "open" && (
+                      <button className="linklike stamp" onClick={() => revoke(inv.id)} disabled={busy}>
+                        {t.revoke}
+                      </button>
+                    )}
+                    <button
+                      className="linklike stamp"
+                      onClick={() => setConfirming(inv.id)}
+                      disabled={busy}
+                    >
+                      {t.deleteInvite}
+                    </button>
+                  </span>
+                </div>
               )}
             </div>
           ))}
