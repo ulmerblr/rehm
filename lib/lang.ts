@@ -52,6 +52,7 @@ export const SOURCE_TYPES = [
   "title",
   "restatement",
   "analysis",
+  "trend_summary",
   "trend_closing",
   "trend_claim",
 ] as const;

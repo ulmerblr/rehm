@@ -320,6 +320,7 @@ export async function POST(
   // the last step of an already-queued job, so it has the whole budget to
   // itself; the run is written and safe before any of it starts.
   await prepareCounterpart(userId, [
+    ...(summary ? [{ type: "trend_summary" as const, id: String(run.id), text: summary }] : []),
     ...(closing ? [{ type: "trend_closing" as const, id: String(run.id), text: closing }] : []),
     ...claimIds.map((c) => ({ type: "trend_claim" as const, id: c.id, text: c.claim })),
   ]);

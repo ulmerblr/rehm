@@ -23,6 +23,7 @@ export default async function Trends() {
   // A trend pass is the thing you'd most likely hand the phone over for, so
   // every closing and claim on the page is resolved in one lookup.
   const tr = await loadTranslations(userId, view.lang, [
+    ...runs.map((r) => ({ type: "trend_summary" as const, id: r.id })),
     ...runs.map((r) => ({ type: "trend_closing" as const, id: r.id })),
     ...runs.flatMap((r) => r.claims.map((c) => ({ type: "trend_claim" as const, id: c.id }))),
   ]);
@@ -63,7 +64,7 @@ export default async function Trends() {
               <div className="run-body">
                 {run.body && (
                   <p className="machine" style={{ whiteSpace: "pre-wrap" }}>
-                    {run.body}
+                    {display(run.body, tr, "trend_summary", run.id).text}
                   </p>
                 )}
 

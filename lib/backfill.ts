@@ -19,6 +19,19 @@ export async function pendingItems(userId: string, target: Lang): Promise<Item[]
   const sql = getSql();
   const out: Item[] = [];
 
+  const summaries = (await sql`
+    SELECT r.id, r.body
+    FROM trend_runs r
+    WHERE r.user_id = ${userId}
+      AND r.body IS NOT NULL AND btrim(r.body) <> ''
+      AND NOT EXISTS (
+        SELECT 1 FROM translations t
+        WHERE t.source_type = 'trend_summary' AND t.source_id = r.id
+          AND t.target_lang = ${target})
+    ORDER BY r.created_at DESC
+  `) as Array<{ id: string; body: string }>;
+  for (const r of summaries) out.push({ type: "trend_summary", id: String(r.id), text: String(r.body) });
+
   const closings = (await sql`
     SELECT r.id, r.closing AS body
     FROM trend_runs r
