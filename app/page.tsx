@@ -30,6 +30,21 @@ export default async function Home() {
         </p>
       ) : (
         <>
+          {/* The most recent dream sits directly under the record action — the
+              thing you came to read, before any measurement of it. */}
+          {latest && (
+            <Link
+              href={`/dreams/${latest.id}`}
+              style={{ display: "block", textDecoration: "none", marginTop: 34 }}
+            >
+              <span className="lede-seq">
+                {String(latest.sequenceNo).padStart(2, "0")}
+              </span>
+              <div className="said-title">{latest.title}</div>
+              <div className="said lede-excerpt">{latest.snippet}</div>
+            </Link>
+          )}
+
           {corpus.ticks.length > 0 && (
             <>
               <div className="timeline">
@@ -80,19 +95,6 @@ export default async function Home() {
           {unanalyzed > 0 && (
             <Link href="/dreams?show=unanalyzed" className="unresolved">
               {unanalyzed} dream{unanalyzed === 1 ? "" : "s"} not analyzed
-            </Link>
-          )}
-
-          {latest && (
-            <Link
-              href={`/dreams/${latest.id}`}
-              style={{ display: "block", textDecoration: "none", marginTop: 38 }}
-            >
-              <span className="lede-seq">
-                {String(latest.sequenceNo).padStart(2, "0")}
-              </span>
-              <div className="said-title">{latest.title}</div>
-              <div className="said lede-excerpt">{latest.snippet}</div>
             </Link>
           )}
         </>

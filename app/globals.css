@@ -424,32 +424,41 @@ label {
 
 /* ---- Home -------------------------------------------------------------- */
 
-/* The timeline is the signature element: every dream placed on its real date,
-   so clustering and silence are visible at a glance rather than inferred from
-   a count. Unanalyzed ticks stand taller and carry the flag colour. */
+/* Every dream placed on its real date, as a square sitting on a hairline.
+   Squares read as records rather than as a bar chart; silence shows up as
+   empty rule. Unresolved dreams sit slightly larger and carry the flag. */
 .timeline {
   position: relative;
-  height: 46px;
-  margin-top: 30px;
-  border-bottom: 1px solid var(--rule);
+  height: 26px;
+  margin-top: 26px;
+}
+
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--rule);
 }
 
 .tick {
   position: absolute;
-  top: 0;
-  bottom: 1px;
-  width: 18px;
-  margin-left: -9px;
+  top: 50%;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   text-decoration: none;
 }
 
 .tick::before {
   content: "";
-  width: 2px;
-  height: 22px;
+  width: 8px;
+  height: 8px;
   background: var(--said-dim);
 }
 
@@ -458,7 +467,8 @@ label {
 }
 
 .tick-open::before {
-  height: 34px;
+  width: 10px;
+  height: 10px;
   background: var(--flag);
 }
 
@@ -469,32 +479,37 @@ label {
   margin-top: 8px;
 }
 
-/* Three figures, read across the room. Numerals large in mono, labels quiet. */
+/* Three figures across a single line. Equal columns, so the row stays one
+   line at any width rather than orphaning the third. */
 .figures {
   display: flex;
-  flex-wrap: wrap;
-  gap: 32px;
-  padding-top: 26px;
-  margin-top: 26px;
+  gap: 16px;
+  padding-top: 20px;
+  margin-top: 20px;
   border-top: 1px solid var(--rule);
+}
+
+.figures > * {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .figure-value {
   font-family: var(--font-data-stack);
-  font-size: 2.75rem;
+  font-size: 1.625rem;
   font-weight: 400;
   line-height: 1;
   color: var(--said);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
 .figure-label {
   font-family: var(--font-ui-stack);
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
+  line-height: 1.3;
   font-weight: 400;
   color: var(--said-dim);
-  margin-top: 8px;
-  max-width: 9rem;
+  margin-top: 7px;
 }
 
 /* Unresolved work: one actionable line, flag colour, nothing else. */
