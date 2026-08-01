@@ -18,7 +18,7 @@ export default async function Settings() {
 
   return (
     <main>
-      <Header right={<Link href="/">← Home</Link>} />
+      <Header />
       <h1 style={{ margin: 0 }}>Settings</h1>
 
       {/* Profile — who you're signed in as. */}

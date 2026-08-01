@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { requireUserId } from "@/lib/session";
 import { getDashboardStats, getUserEmail } from "@/lib/queries";
-import { formatStamp } from "@/lib/scope";
 import Header from "@/app/components/Header";
 import ProfileChip from "@/app/components/ProfileChip";
 
@@ -74,7 +73,6 @@ export default async function Home() {
               <span className="status status-warn">
                 {unanalyzed} dream{unanalyzed === 1 ? "" : "s"} not analyzed
               </span>
-              <span className="seq">Open the log →</span>
             </Link>
           )}
 
@@ -98,12 +96,6 @@ export default async function Home() {
             </>
           )}
 
-          {stats.lastTrendAt && (
-            <p className="muted" style={{ fontSize: "0.9rem" }}>
-              Last trend pass {formatStamp(stats.lastTrendAt)}.{" "}
-              <Link href="/trends">Trends →</Link>
-            </p>
-          )}
         </>
       )}
     </main>

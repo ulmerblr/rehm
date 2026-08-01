@@ -22,7 +22,6 @@ export default async function Trends() {
       <Header />
       <div className="row" style={{ justifyContent: "space-between" }}>
         <h1 style={{ margin: 0 }}>Trends</h1>
-        <Link href="/dreams">← Log</Link>
       </div>
       <p className="muted">
         Choose how much of the corpus to read. Every claim cites the dreams it rests on. Past runs

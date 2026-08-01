@@ -22,7 +22,7 @@ export default async function DreamLog() {
 
   return (
     <main>
-      <Header right={<Link href="/record">Record →</Link>} />
+      <Header />
       <div className="row" style={{ justifyContent: "space-between" }}>
         <h1 style={{ margin: 0 }}>Dream log</h1>
         <span className="seq">
