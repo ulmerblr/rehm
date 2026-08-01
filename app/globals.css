@@ -11,22 +11,22 @@
 :root {
   /* Surface — deep ink navy. The cold ground is the point: warm testimony
      advances against it, cool machine text recedes into it. */
-  --ink: #0d1626;
-  --ink-raised: #16223a;
-  --rule: #22324c;
+  --ink: #16294a;
+  --ink-raised: #1e3560;
+  --rule: #2c4570;
 
   /* The dreamer's own voice — warm cream. */
   --said: #efe8dc;
-  --said-dim: #9c9484;
+  --said-dim: #a99f8c;
 
   /* Machine-generated. Cooler, quieter, closer to the ground. */
   --machine: #94a6be;
-  --machine-dim: #63748f;
+  --machine-dim: #8098b8;
 
   /* Exactly one accent: primary action and active navigation. */
   --brass: #d69b4c;
   /* Unresolved state only. Never decorative, never a second accent. */
-  --flag: #c4705a;
+  --flag: #d98570;
 
   --font-said-stack: var(--font-said), Georgia, "Times New Roman", serif;
   --font-ui-stack: var(--font-ui), "Helvetica Neue", Arial, sans-serif;

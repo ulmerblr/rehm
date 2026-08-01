@@ -9,8 +9,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "A longitudinal dream study.",
     start_url: "/",
     display: "standalone",
-    background_color: "#0d1626",
-    theme_color: "#0d1626",
+    background_color: "#16294a",
+    theme_color: "#16294a",
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
       { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
