@@ -19,7 +19,9 @@ export default function AppBarChrome({
   viewLang: Lang | null;
 }) {
   const pathname = usePathname() || "/";
-  if (HIDE_ON.some((p) => pathname.startsWith(p))) return null;
+  // Sign-in and sign-up carry their own wordmark and have no bar — but the
+  // page still begins behind the status bar, so they get the inset on its own.
+  if (HIDE_ON.some((p) => pathname.startsWith(p))) return <div className="safe-top" />;
 
   return (
     <header className="app-bar">

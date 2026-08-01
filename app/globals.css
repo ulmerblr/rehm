@@ -293,19 +293,28 @@ label {
 
 /* ---- Chrome ------------------------------------------------------------ */
 
+/* The app runs edge to edge (viewport-fit: cover) under a translucent status
+   bar, so the page's y=0 is behind the clock, not below it. The bar has to
+   inset itself or it renders underneath — and iOS reserves that strip for its
+   own tap-to-scroll-to-top gesture, so anything drawn there is unreachable as
+   well as unreadable. The ink still extends behind the status bar; only the
+   contents move down. */
 .app-bar {
   position: sticky;
   top: 0;
   z-index: 30;
   background: var(--ink);
   border-bottom: 1px solid var(--rule);
+  padding-top: env(safe-area-inset-top);
 }
 
 .app-bar-inner {
   max-width: 44rem;
   margin: 0 auto;
   min-height: 52px;
-  padding: 8px 20px;
+  /* max() keeps the normal 20px gutter on a flat screen and widens it only
+     where a notch or rounded corner would otherwise clip the contents. */
+  padding: 8px max(20px, env(safe-area-inset-right)) 8px max(20px, env(safe-area-inset-left));
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -343,6 +352,12 @@ label {
   color: var(--said);
 }
 
+/* Stands in for the app bar on screens that don't have one, so their content
+   still clears the status bar. */
+.safe-top {
+  height: env(safe-area-inset-top);
+}
+
 .app-bar-right {
   display: flex;
   align-items: center;
@@ -361,9 +376,13 @@ label {
   background: transparent;
   border: 1px solid var(--brass);
   border-radius: 3px;
-  padding: 3px 7px;
+  padding: 8px 10px;
   cursor: pointer;
   line-height: 1;
+  /* Small on the page, but a real target under the thumb: this gets tapped
+     while handing the phone to someone, which is not a careful gesture. */
+  min-height: 34px;
+  min-width: 40px;
 }
 
 .lang-toggle:hover:not(:disabled) {
