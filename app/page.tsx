@@ -6,6 +6,18 @@ import ProfileChip from "@/app/components/ProfileChip";
 
 export const dynamic = "force-dynamic";
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// Format a YYYY-MM-DD string without going through Date() (which would shift the
+// day across timezones). Falls back to the raw string if it isn't as expected.
+function formatDreamDate(iso: string): string {
+  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return iso;
+  const [, y, mo, d] = m;
+  const month = MONTHS[Number(mo) - 1] ?? mo;
+  return `${month} ${Number(d)}, ${y}`;
+}
+
 export default async function Home() {
   const userId = await requireUserId();
   const [dreams, email] = await Promise.all([listDreams(userId), getUserEmail(userId)]);
@@ -34,12 +46,12 @@ export default async function Home() {
       ) : (
         <div className="stack" style={{ marginTop: 8 }}>
           {dreams.map((d) => (
-            <Link key={d.id} href={`/dreams/${d.id}`} className="card card-link" style={{ margin: 0 }}>
+            <Link key={d.id} href={`/dreams/${d.id}`} className="card card-link dream-row" style={{ margin: 0 }}>
               <div className="seq">
                 Dream {d.sequenceNo}
-                {d.dreamtOn ? ` · ${d.dreamtOn}` : ""}
+                {d.dreamtOn ? ` · ${formatDreamDate(d.dreamtOn)}` : ""}
               </div>
-              <div style={{ marginTop: 6 }}>{d.firstLine || "(no text)"}</div>
+              <div className="dream-title">{d.title}</div>
             </Link>
           ))}
         </div>

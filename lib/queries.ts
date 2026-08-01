@@ -17,15 +17,34 @@ function toIso(value: unknown): string | null {
   if (value == null) return null;
   return value instanceof Date ? value.toISOString() : new Date(String(value)).toISOString();
 }
-function firstLine(text: string): string {
-  return (String(text).split("\n").find((l) => l.trim().length > 0) ?? "").trim();
+// A short, one-line title for the dream list, derived from the raw transcript
+// (no LLM, no cost). A dictation is often one long paragraph, so keying on the
+// first newline would show the whole thing — instead take the first sentence if
+// it's short, otherwise a hard character cap at a word boundary, with an
+// ellipsis when truncated. This is display-only; the immutable transcript is
+// untouched.
+function deriveTitle(text: string): string {
+  const clean = String(text).replace(/\s+/g, " ").trim();
+  if (!clean) return "(no text)";
+
+  const CAP = 72;
+  const sentence = clean.match(/^.*?[.!?](?:\s|$)/)?.[0].trim();
+  let title = sentence && sentence.length <= CAP ? sentence : clean;
+
+  if (title.length > CAP) {
+    const cut = title.slice(0, CAP);
+    const lastSpace = cut.lastIndexOf(" ");
+    title = (lastSpace > 40 ? cut.slice(0, lastSpace) : cut).trim() + "…";
+  }
+  // Drop trailing sentence punctuation for a cleaner title (keep the ellipsis).
+  return title.endsWith("…") ? title : title.replace(/[.!?]+$/, "");
 }
 
 export type DreamListItem = {
   id: string;
   sequenceNo: number;
   dreamtOn: string | null;
-  firstLine: string;
+  title: string;
 };
 
 export async function listDreams(userId: string): Promise<DreamListItem[]> {
@@ -39,7 +58,7 @@ export async function listDreams(userId: string): Promise<DreamListItem[]> {
     id: String(r.id),
     sequenceNo: toInt(r.sequence_no),
     dreamtOn: toDateStr(r.dreamt_on),
-    firstLine: firstLine(r.raw_transcript as string),
+    title: deriveTitle(r.raw_transcript as string),
   }));
 }
 

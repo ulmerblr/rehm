@@ -268,3 +268,17 @@ summary {
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
 }
+
+/* Dream list rows — compact; the title never wraps past one line. */
+.dream-row {
+  padding: 14px 16px;
+}
+
+.dream-title {
+  margin-top: 3px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
