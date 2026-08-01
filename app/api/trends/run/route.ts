@@ -7,6 +7,8 @@ import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { getUserAnthropic, markKeyVerified } from "@/lib/keys";
 import { userFacingAnthropicError } from "@/lib/errors";
 import { parseScope, scopeLabel, selectInScope } from "@/lib/scope";
+import { addendaByDream } from "@/lib/queries";
+import { composeDreamText } from "@/lib/dreamText";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -88,11 +90,15 @@ export async function POST(req: NextRequest) {
   }
 
   const label = scopeLabel(scope);
+  // Additions made after capture are part of the record and are read here too,
+  // each marked with when it surfaced.
+  const addenda = await addendaByDream(userId);
   const idBySeq = new Map<number, string>();
   const corpusText = scoped
     .map(({ sequenceNo, dreamtOn, row }) => {
       idBySeq.set(sequenceNo, String(row.id));
-      return `Dream ${sequenceNo} (${dreamtOn ?? "no date"}):\n${row.raw_transcript}`;
+      const text = composeDreamText(row.raw_transcript, addenda.get(String(row.id)) ?? []);
+      return `Dream ${sequenceNo} (${dreamtOn ?? "no date"}):\n${text}`;
     })
     .join("\n\n---\n\n");
 

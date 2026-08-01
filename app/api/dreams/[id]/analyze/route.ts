@@ -6,6 +6,8 @@ import { ANALYSIS_PROMPT, ANALYSIS_PROMPT_VERSION } from "@/lib/prompts";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { getUserAnthropic, markKeyVerified } from "@/lib/keys";
 import { userFacingAnthropicError } from "@/lib/errors";
+import { getAddenda } from "@/lib/queries";
+import { composeDreamText } from "@/lib/dreamText";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,7 +29,11 @@ export async function POST(
     SELECT raw_transcript FROM dreams WHERE id = ${dreamId} AND user_id = ${userId}
   `) as Array<{ raw_transcript: string }>;
   if (rows.length === 0) return NextResponse.json({ error: "not found" }, { status: 404 });
-  const raw = rows[0].raw_transcript;
+  // The record is the transcript plus anything remembered afterwards, each
+  // marked with when it surfaced. A new analysis sees every addition made up to
+  // now; earlier analyses are kept as-is, so the history stays honest about
+  // what was known when.
+  const raw = composeDreamText(rows[0].raw_transcript, await getAddenda(dreamId));
 
   const got = await getUserAnthropic(userId);
   if ("error" in got) {

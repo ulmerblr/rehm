@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUserId } from "@/lib/session";
-import { getDream, getRestatementState, getAnalyses } from "@/lib/queries";
+import { getDream, getRestatementState, getAnalyses, getAddenda } from "@/lib/queries";
+import { formatStamp } from "@/lib/scope";
 import ExportButton from "@/app/components/ExportButton";
 import RestatementLoop from "@/app/components/RestatementLoop";
 import Header from "@/app/components/Header";
 import DreamActions from "./DreamActions";
 import DeleteDream from "./DeleteDream";
 import EditableTitle from "./EditableTitle";
+import AddAddendum from "./AddAddendum";
 
 export const dynamic = "force-dynamic";
 
@@ -21,12 +23,13 @@ export default async function DreamPage({
   const dream = await getDream(id, userId);
   if (!dream) notFound();
 
-  const [restatement, analyses] = await Promise.all([
+  const [restatement, analyses, addenda] = await Promise.all([
     getRestatementState(dream.id),
     getAnalyses(dream.id),
+    getAddenda(dream.id),
   ]);
 
-  const exportText = buildExport(dream, restatement, analyses);
+  const exportText = buildExport(dream, restatement, analyses, addenda);
 
   return (
     <main>
@@ -49,6 +52,24 @@ export default async function DreamPage({
 
       <h2>Raw transcript</h2>
       <div className="verbatim">{dream.rawTranscript}</div>
+
+      <h2>Additions</h2>
+      <p className="muted" style={{ marginTop: 0 }}>
+        Things that came back to you later. Added to the record, never replacing it.
+      </p>
+      {addenda.length > 0 && (
+        <div className="stack" style={{ marginBottom: 14 }}>
+          {addenda.map((a) => (
+            <div key={a.addendumNo} className="addendum">
+              <div className="seq">
+                Added {a.capturedAt ? formatStamp(a.capturedAt) : "later"}
+              </div>
+              <div style={{ whiteSpace: "pre-wrap", marginTop: 4 }}>{a.body}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      <AddAddendum dreamId={dream.id} />
 
       <h2>Restatement</h2>
       {restatement && restatement.accepted ? (
@@ -131,7 +152,8 @@ export default async function DreamPage({
 function buildExport(
   dream: NonNullable<Awaited<ReturnType<typeof getDream>>>,
   restatement: Awaited<ReturnType<typeof getRestatementState>>,
-  analyses: Awaited<ReturnType<typeof getAnalyses>>
+  analyses: Awaited<ReturnType<typeof getAnalyses>>,
+  addenda: Awaited<ReturnType<typeof getAddenda>>
 ): string {
   const parts: string[] = [];
   parts.push(`DREAM ${dream.sequenceNo} — ${dream.dreamtOn ?? "no date"}`);
@@ -139,6 +161,14 @@ function buildExport(
   parts.push("");
   parts.push("RAW TRANSCRIPT");
   parts.push(dream.rawTranscript);
+  if (addenda.length > 0) {
+    parts.push("");
+    parts.push("ADDITIONS (remembered afterwards)");
+    for (const a of addenda) {
+      parts.push(`--- added ${a.capturedAt ? a.capturedAt.slice(0, 10) : "later"}`);
+      parts.push(a.body);
+    }
+  }
   if (restatement && restatement.turns.length > 0) {
     parts.push("");
     parts.push("RESTATEMENT LOOP");

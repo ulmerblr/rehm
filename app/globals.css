@@ -294,6 +294,16 @@ summary {
   white-space: nowrap;
 }
 
+/* Something remembered after capture — visibly attached to the transcript
+   rather than part of it. */
+.addendum {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 12px 12px 0;
+  padding: 12px 14px;
+}
+
 /* Collapsed trend run: dream numbers + date, expanding to the full run. */
 .run {
   background: var(--surface);

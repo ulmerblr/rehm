@@ -1,4 +1,5 @@
 import { getSql } from "@/lib/db";
+import type { Addendum } from "@/lib/dreamText";
 
 // Neon driver quirks: DATE -> Date object, integers -> number, bigint (sum,
 // count) -> string, uuid[] -> JS array, nulls -> null. Coerce and guard every
@@ -162,6 +163,54 @@ export async function getDream(id: string, userId: string): Promise<Dream | null
     title: stored || deriveTitle(String(r.raw_transcript)),
     titleIsCustom: stored.length > 0,
   };
+}
+
+// Additions the dreamer made after capture ("I remembered something else").
+// Ordered oldest first. Degrades to an empty list if the table isn't there yet.
+export async function getAddenda(dreamId: string): Promise<Addendum[]> {
+  const sql = getSql();
+  try {
+    const rows = (await sql`
+      SELECT addendum_no, body, captured_at FROM dream_addenda
+      WHERE dream_id = ${dreamId} ORDER BY addendum_no ASC
+    `) as Array<Record<string, unknown>>;
+    return rows.map((r) => ({
+      addendumNo: toInt(r.addendum_no),
+      body: String(r.body),
+      capturedAt: toIso(r.captured_at) ?? "",
+    }));
+  } catch (err) {
+    if (!isMissingSchema(err)) throw err;
+    return [];
+  }
+}
+
+// Every addendum for the user's whole corpus, grouped by dream id — one query
+// for a trend pass instead of one per dream.
+export async function addendaByDream(userId: string): Promise<Map<string, Addendum[]>> {
+  const sql = getSql();
+  const out = new Map<string, Addendum[]>();
+  try {
+    const rows = (await sql`
+      SELECT a.dream_id, a.addendum_no, a.body, a.captured_at
+      FROM dream_addenda a JOIN dreams d ON d.id = a.dream_id
+      WHERE d.user_id = ${userId}
+      ORDER BY a.addendum_no ASC
+    `) as Array<Record<string, unknown>>;
+    for (const r of rows) {
+      const key = String(r.dream_id);
+      const list = out.get(key) ?? [];
+      list.push({
+        addendumNo: toInt(r.addendum_no),
+        body: String(r.body),
+        capturedAt: toIso(r.captured_at) ?? "",
+      });
+      out.set(key, list);
+    }
+  } catch (err) {
+    if (!isMissingSchema(err)) throw err;
+  }
+  return out;
 }
 
 export type Turn = { turnNo: number; role: "proposal" | "objection"; body: string };
