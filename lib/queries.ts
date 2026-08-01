@@ -50,16 +50,21 @@ export type DreamListItem = {
 export async function listDreams(userId: string): Promise<DreamListItem[]> {
   const sql = getSql();
   const rows = (await sql`
-    SELECT id, sequence_no, dreamt_on, raw_transcript
+    SELECT id, sequence_no, dreamt_on, raw_transcript, title
     FROM dreams WHERE user_id = ${userId}
     ORDER BY sequence_no DESC
   `) as Array<Record<string, unknown>>;
-  return rows.map((r) => ({
-    id: String(r.id),
-    sequenceNo: toInt(r.sequence_no),
-    dreamtOn: toDateStr(r.dreamt_on),
-    title: deriveTitle(r.raw_transcript as string),
-  }));
+  return rows.map((r) => {
+    const stored = r.title == null ? "" : String(r.title).trim();
+    return {
+      id: String(r.id),
+      sequenceNo: toInt(r.sequence_no),
+      dreamtOn: toDateStr(r.dreamt_on),
+      // Prefer the generated title; fall back to one derived from the transcript
+      // (older dreams, or captures where no key was on file / the title failed).
+      title: stored || deriveTitle(r.raw_transcript as string),
+    };
+  });
 }
 
 export async function nextSequenceNo(userId: string): Promise<number> {
@@ -77,22 +82,25 @@ export type Dream = {
   dreamtOn: string | null;
   captureMethod: string | null;
   rawTranscript: string;
+  title: string | null;
 };
 
 export async function getDream(id: string, userId: string): Promise<Dream | null> {
   const sql = getSql();
   const rows = (await sql`
-    SELECT id, sequence_no, dreamt_on, capture_method, raw_transcript
+    SELECT id, sequence_no, dreamt_on, capture_method, raw_transcript, title
     FROM dreams WHERE id = ${id} AND user_id = ${userId}
   `) as Array<Record<string, unknown>>;
   if (rows.length === 0) return null;
   const r = rows[0];
+  const stored = r.title == null ? "" : String(r.title).trim();
   return {
     id: String(r.id),
     sequenceNo: toInt(r.sequence_no),
     dreamtOn: toDateStr(r.dreamt_on),
     captureMethod: r.capture_method == null ? null : String(r.capture_method),
     rawTranscript: String(r.raw_transcript),
+    title: stored || deriveTitle(String(r.raw_transcript)),
   };
 }
 

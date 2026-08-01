@@ -28,6 +28,10 @@ Offer an interpretation of this dream: what seems emotionally or symbolically sa
 
 Write in plain prose. Return only the analysis, with no preamble or headers.`;
 
+// The title prompt. A tiny label for the dream list — not analysis. Kept short
+// and literal so it names the dream's central image, not an interpretation.
+export const TITLE_PROMPT = `Write a very short title for this dream — 3 to 6 words — naming its central image, place, or event. Be concrete and literal; do not interpret, moralize, or add words like "dream" or "nightmare". No quotation marks, no ending punctuation. Reply with the title only, nothing else.`;
+
 // The trend prompt. Reads the whole corpus and must cite the dreams each claim
 // rests on. The route drops any claim that comes back without citations.
 export const TREND_PROMPT = `You are looking across an entire corpus of a single person's dreams to identify trends: recurring images, tensions, emotional patterns, or motifs that appear across multiple dreams over time.

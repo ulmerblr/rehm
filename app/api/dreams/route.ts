@@ -3,6 +3,8 @@ import { getSql } from "@/lib/db";
 import { CAPTURE_METHOD, MODEL } from "@/lib/config";
 import { RESTATEMENT_PROMPT_VERSION } from "@/lib/prompts";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { getUserAnthropic, markKeyVerified } from "@/lib/keys";
+import { generateTitle } from "@/lib/titles";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,8 +12,10 @@ export const dynamic = "force-dynamic";
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 // Create a dream from the captured transcript (verbatim) and open a restatement
-// row for the loop. No LLM call here — capture never depends on a working key,
-// so the raw transcript is saved even if the key later fails.
+// row for the loop. A short title is generated best-effort (cheap model) so the
+// list is scannable — but capture NEVER depends on it or on a working key: if
+// there is no key or the title call fails, the raw transcript is still saved
+// and the list falls back to a transcript-derived title.
 export async function POST(req: NextRequest) {
   const userId = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -34,9 +38,26 @@ export async function POST(req: NextRequest) {
   `) as Array<{ next: unknown }>;
   const sequenceNo = Number(next);
 
+  // Best-effort title. Never throws; a null title just means the list derives
+  // one from the transcript. Title must be set at INSERT because dreams is
+  // immutable (0007), so this runs before the insert.
+  let title: string | null = null;
+  const got = await getUserAnthropic(userId);
+  if (!("error" in got)) {
+    const result = await generateTitle(got.client, rawTranscript);
+    if (result) {
+      title = result.title;
+      await sql`
+        INSERT INTO usage_events (user_id, kind, input_tokens, output_tokens)
+        VALUES (${userId}, 'title', ${result.usage.input}, ${result.usage.output})
+      `;
+      await markKeyVerified(got.keyId);
+    }
+  }
+
   const [dream] = (await sql`
-    INSERT INTO dreams (user_id, sequence_no, dreamt_on, capture_method, raw_transcript)
-    VALUES (${userId}, ${sequenceNo}, ${dreamtOn}, ${CAPTURE_METHOD}, ${rawTranscript})
+    INSERT INTO dreams (user_id, sequence_no, dreamt_on, capture_method, raw_transcript, title)
+    VALUES (${userId}, ${sequenceNo}, ${dreamtOn}, ${CAPTURE_METHOD}, ${rawTranscript}, ${title})
     RETURNING id
   `) as Array<{ id: string }>;
 

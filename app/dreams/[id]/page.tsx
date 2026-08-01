@@ -34,6 +34,9 @@ export default async function DreamPage({
         <h1 style={{ margin: 0 }}>Dream {dream.sequenceNo}</h1>
         <Link href="/">← Dreams</Link>
       </div>
+      {dream.title && (
+        <p style={{ margin: "2px 0 0", fontSize: "1.1rem", fontWeight: 600 }}>{dream.title}</p>
+      )}
       <p className="seq">
         {dream.dreamtOn ?? "no date"}
         {dream.captureMethod ? (
