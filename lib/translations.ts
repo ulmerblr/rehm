@@ -9,7 +9,14 @@ export type LangSettings = {
   dual: boolean;
   /** Has the setup screen been answered? Not the same as "has a key". */
   onboarded: boolean;
+  /**
+   * Will a key be found when this account generates something? True for a
+   * sponsored account with no key of its own — the whole point of sponsorship
+   * is that nothing should nag them for a key they were told not to get.
+   */
   hasKey: boolean;
+  /** Who is paying, if not this account. Null when it pays for itself. */
+  sponsorEmail: string | null;
   /** The first account to exist administers the instance. */
   isOwner: boolean;
 };
@@ -30,38 +37,69 @@ const FALLBACK: LangSettings = {
   dual: false,
   onboarded: true,
   hasKey: false,
+  sponsorEmail: null,
   isOwner: false,
+};
+
+type SettingsRow = {
+  language: string;
+  dual_language: boolean;
+  onboarded_at: unknown;
+  role: string;
+  has_key: boolean;
+  sponsor_email?: string | null;
 };
 
 export const getLangSettings = cache(async function getLangSettings(
   userId: string
 ): Promise<LangSettings> {
   const sql = getSql();
+
+  const shape = (rows: SettingsRow[]): LangSettings =>
+    rows.length === 0
+      ? FALLBACK
+      : {
+          language: rows[0].language === "es" ? "es" : "en",
+          dual: Boolean(rows[0].dual_language),
+          onboarded: rows[0].onboarded_at != null,
+          hasKey: Boolean(rows[0].has_key),
+          sponsorEmail: rows[0].sponsor_email ?? null,
+          isOwner: rows[0].role === "owner",
+        };
+
   try {
-    const rows = (await sql`
-      SELECT u.language, u.dual_language, u.onboarded_at, u.role,
-             EXISTS (
-               SELECT 1 FROM user_api_keys k
-               WHERE k.user_id = u.id AND k.status = 'active'
-             ) AS has_key
-      FROM users u WHERE u.id = ${userId}
-    `) as Array<{
-      language: string;
-      dual_language: boolean;
-      onboarded_at: unknown;
-      role: string;
-      has_key: boolean;
-    }>;
-    if (rows.length === 0) return FALLBACK;
-    return {
-      language: rows[0].language === "es" ? "es" : "en",
-      dual: Boolean(rows[0].dual_language),
-      onboarded: rows[0].onboarded_at != null,
-      hasKey: Boolean(rows[0].has_key),
-      isOwner: rows[0].role === "owner",
-    };
+    return shape(
+      (await sql`
+        SELECT u.language, u.dual_language, u.onboarded_at, u.role,
+               sponsor.email AS sponsor_email,
+               EXISTS (
+                 SELECT 1 FROM user_api_keys k
+                 WHERE k.status = 'active'
+                   AND (k.user_id = u.id OR k.user_id = u.key_sponsor_id)
+               ) AS has_key
+        FROM users u
+        LEFT JOIN users sponsor ON sponsor.id = u.key_sponsor_id
+        WHERE u.id = ${userId}
+      `) as SettingsRow[]
+    );
   } catch {
-    return FALLBACK;
+    // key_sponsor_id arrives in 0023. Retry without it before giving up:
+    // FALLBACK loses the account's real language, and dropping someone into
+    // English over a column that lands a second later is worth avoiding.
+    try {
+      return shape(
+        (await sql`
+          SELECT u.language, u.dual_language, u.onboarded_at, u.role,
+                 EXISTS (
+                   SELECT 1 FROM user_api_keys k
+                   WHERE k.user_id = u.id AND k.status = 'active'
+                 ) AS has_key
+          FROM users u WHERE u.id = ${userId}
+        `) as SettingsRow[]
+      );
+    } catch {
+      return FALLBACK;
+    }
   }
 });
 
@@ -124,8 +162,8 @@ export async function translateAndStore(
   if (usage.input > 0 || usage.output > 0) {
     try {
       await sql`
-        INSERT INTO usage_events (user_id, kind, input_tokens, output_tokens)
-        VALUES (${userId}, 'translation', ${usage.input}, ${usage.output})
+        INSERT INTO usage_events (user_id, kind, input_tokens, output_tokens, billed_to)
+        VALUES (${userId}, 'translation', ${usage.input}, ${usage.output}, ${got.billedTo})
       `;
     } catch (err) {
       console.error("[rehm] translation usage write failed:", err);

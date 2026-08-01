@@ -56,8 +56,8 @@ export async function POST(
   `;
   try {
     await sql`
-      INSERT INTO usage_events (user_id, kind, input_tokens, output_tokens)
-      VALUES (${userId}, 'title', ${result.usage.input}, ${result.usage.output})
+      INSERT INTO usage_events (user_id, kind, input_tokens, output_tokens, billed_to)
+      VALUES (${userId}, 'title', ${result.usage.input}, ${result.usage.output}, ${got.billedTo})
     `;
   } catch (err) {
     console.error("[rehm] usage write failed:", err);

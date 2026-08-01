@@ -37,6 +37,27 @@ export default function Accounts({
     [accounts]
   );
 
+  // Offering your key, or taking it back. The server only ever accepts on/off
+  // — whose key is never in the request — so this can't bill a third party.
+  async function setSponsored(id: string, sponsor: boolean) {
+    setError(null);
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/accounts/${id}/key-sponsor`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ sponsor }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || data?.error || `failed (${res.status})`);
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function remove(id: string) {
     setError(null);
     setBusy(true);
@@ -59,6 +80,7 @@ export default function Accounts({
       <p className="machine" style={{ marginTop: 0 }}>
         {t.accountsNote}
       </p>
+      <p className="machine">{t.onYourKeyNote}</p>
 
       {done && (
         <p className="stamp stamp-machine" style={{ marginTop: 12 }}>
@@ -81,7 +103,17 @@ export default function Accounts({
                   {t.invitedByLabel(names.get(a.invitedByEmail) ?? a.invitedByEmail)}
                 </span>
               )}
+              {a.onMyKey && <span className="stamp stamp-flag">{t.onYourKey}</span>}
             </div>
+
+            {/* What this account has actually put on your key. Shown only once
+                there is something to show — a row of zeroes is not reassurance,
+                it's noise. */}
+            {a.onMyKey && (a.billedToMe.input > 0 || a.billedToMe.output > 0) && (
+              <div className="stamp stamp-machine" style={{ marginTop: 6 }}>
+                {t.billedHere(a.billedToMe.input, a.billedToMe.output)}
+              </div>
+            )}
 
             {/* The owner can't be removed: an instance with nobody to administer
                 it has no way back, and there is no console to fix it from. */}
@@ -110,17 +142,28 @@ export default function Accounts({
                     </div>
                   </>
                 ) : (
-                  <button
-                    className="linklike stamp"
-                    disabled={busy}
-                    onClick={() => {
-                      setError(null);
-                      setDone(null);
-                      setConfirming(a.id);
-                    }}
-                  >
-                    {t.deleteAccount}
-                  </button>
+                  <div className="row" style={{ gap: 10 }}>
+                    <button
+                      className="btn btn-sm"
+                      disabled={busy}
+                      onClick={() => setSponsored(a.id, !a.onMyKey)}
+                    >
+                      {a.onMyKey ? t.takeOffYourKey : t.putOnYourKey}
+                    </button>
+                    <span className="row-end">
+                      <button
+                        className="linklike stamp"
+                        disabled={busy}
+                        onClick={() => {
+                          setError(null);
+                          setDone(null);
+                          setConfirming(a.id);
+                        }}
+                      >
+                        {t.deleteAccount}
+                      </button>
+                    </span>
+                  </div>
                 )}
               </div>
             )}

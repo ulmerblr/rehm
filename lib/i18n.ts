@@ -247,6 +247,17 @@ export type Dict = {
   youMarker: string;
   invitedByLabel: (who: string) => string;
 
+  // Paying for someone else's calls
+  billedToSponsor: (who: string) => string;
+  sponsoredKeyNote: string;
+  onYourKey: string;
+  putOnYourKey: string;
+  takeOffYourKey: string;
+  onYourKeyNote: string;
+  spentOnYourKey: string;
+  spentOnYourKeyNote: string;
+  billedHere: (input: number, output: number) => string;
+
   // First-run setup
   setupTitle: string;
   setupLead: string;
@@ -516,6 +527,19 @@ const en: Dict = {
   broughtCount: (n) => (n === 1 ? "brought 1" : `brought ${n}`),
   youMarker: "you",
   invitedByLabel: (who) => `invited by ${who}`,
+
+  billedToSponsor: (who) => `Billed to ${who}'s key.`,
+  sponsoredKeyNote:
+    "You don't need your own — everything you generate here goes on their account. If you add one anyway it sits unused until they turn this off.",
+  onYourKey: "on your key",
+  putOnYourKey: "Put on my key",
+  takeOffYourKey: "Take off my key",
+  onYourKeyNote:
+    "Their calls are billed to your key instead of their own. They never see the key, and you can take it back at any time — it applies from the next call.",
+  spentOnYourKey: "On your key, by others",
+  spentOnYourKeyNote:
+    "What the accounts you're paying for have generated. Your own usage is above; this is on top of it.",
+  billedHere: (input, output) => `${input.toLocaleString()} in · ${output.toLocaleString()} out`,
 
   setupTitle: "Two things before you start",
   setupLead:
@@ -794,6 +818,20 @@ const es: Dict = {
   broughtCount: (n) => (n === 1 ? "trajo a 1" : `trajo a ${n}`),
   youMarker: "tú",
   invitedByLabel: (who) => `invitación de ${who}`,
+
+  billedToSponsor: (who) => `Se cobra a la clave de ${who}.`,
+  sponsoredKeyNote:
+    "No hace falta que tengas una — todo lo que generes aquí va a su cuenta. Si añades una igualmente, se queda sin usar hasta que esa persona lo desactive.",
+  onYourKey: "a tu clave",
+  putOnYourKey: "Pasar a mi clave",
+  takeOffYourKey: "Quitar de mi clave",
+  onYourKeyNote:
+    "Sus llamadas se cobran a tu clave y no a la suya. Nunca ven la clave, y puedes deshacerlo cuando quieras — se aplica a partir de la siguiente llamada.",
+  spentOnYourKey: "En tu clave, por otras personas",
+  spentOnYourKeyNote:
+    "Lo que han generado las cuentas que estás pagando. Tu propio consumo está arriba; esto va aparte.",
+  billedHere: (input, output) =>
+    `${input.toLocaleString()} de entrada · ${output.toLocaleString()} de salida`,
 
   setupTitle: "Dos cosas antes de empezar",
   setupLead:

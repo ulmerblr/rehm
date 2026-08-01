@@ -84,6 +84,10 @@ const ARGS: Record<string, unknown[]> = {
   upTo: ["Aug 1, 2026"],
   addedOn: ["Aug 1, 2026"],
   viewIn: ["English"],
+  usedBy: ["ana", "Aug 1, 2026"],
+  invitedByLabel: ["ana"],
+  billedToSponsor: ["ulmerb"],
+  billedHere: [1200, 340],
 };
 const fnKeys = enKeys.filter((k) => typeof en[k] === "function");
 const fnSame: string[] = [];

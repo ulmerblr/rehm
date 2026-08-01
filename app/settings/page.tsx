@@ -1,6 +1,7 @@
 import { requireUserId } from "@/lib/session";
 import {
   getActiveKeyInfo,
+  getSponsoredTokenTotal,
   getTokenTotal,
   getUserEmail,
   inviteStandings,
@@ -11,7 +12,7 @@ import { headers } from "next/headers";
 import { resolveView } from "@/lib/viewLang";
 import { quote } from "@/lib/backfill";
 import { otherLang } from "@/lib/lang";
-import { displayNames } from "@/lib/names";
+import { displayNames, shortName } from "@/lib/names";
 import KeyForm from "./KeyForm";
 import LanguageSettings from "./LanguageSettings";
 import Accounts from "./Accounts";
@@ -24,9 +25,10 @@ export default async function Settings() {
   const userId = await requireUserId();
   const view = await resolveView(userId);
   const t = view.t;
-  const [key, tokens, email, invites, standings, accounts] = await Promise.all([
+  const [key, tokens, sponsored, email, invites, standings, accounts] = await Promise.all([
     getActiveKeyInfo(userId),
     getTokenTotal(userId),
+    getSponsoredTokenTotal(userId),
     getUserEmail(userId),
     listInvites(userId),
     inviteStandings(userId),
@@ -82,7 +84,43 @@ export default async function Settings() {
         {t.usageNote}
       </p>
 
+      {/* What other people have spent on your key. Kept out of the totals above
+          rather than folded in: those are what you generated, and a number that
+          silently mixes the two answers neither question. */}
+      {(sponsored.input > 0 || sponsored.output > 0) && (
+        <>
+          <h2>{t.spentOnYourKey}</h2>
+          <div className="row" style={{ gap: 28, alignItems: "baseline" }}>
+            <div>
+              <div className="run-corpus">{sponsored.input.toLocaleString()}</div>
+              <div className="stamp stamp-machine" style={{ marginTop: 4 }}>
+                {t.inputTokens}
+              </div>
+            </div>
+            <div>
+              <div className="run-corpus">{sponsored.output.toLocaleString()}</div>
+              <div className="stamp stamp-machine" style={{ marginTop: 4 }}>
+                {t.outputTokens}
+              </div>
+            </div>
+          </div>
+          <p className="machine" style={{ marginTop: 14 }}>
+            {t.spentOnYourKeyNote}
+          </p>
+        </>
+      )}
+
       <h2>{t.apiKey}</h2>
+      {/* Someone else is paying. Said before anything about getting a key, so
+          the section doesn't read as a chore they still have to do. */}
+      {view.sponsorEmail && (
+        <>
+          <p className="stamp stamp-flag" style={{ marginTop: 0 }}>
+            {t.billedToSponsor(shortName(view.sponsorEmail))}
+          </p>
+          <p className="machine">{t.sponsoredKeyNote}</p>
+        </>
+      )}
       {key ? (
         <div className="stamp" style={{ marginBottom: 14 }}>
           {t.keyEnds(
@@ -92,9 +130,11 @@ export default async function Settings() {
           )}
         </div>
       ) : (
-        <p className="machine" style={{ marginTop: 0 }}>
-          {t.noKeyOnFile}
-        </p>
+        !view.sponsorEmail && (
+          <p className="machine" style={{ marginTop: 0 }}>
+            {t.noKeyOnFile}
+          </p>
+        )
       )}
       <KeyForm hasKey={!!key} lang={view.lang} />
 

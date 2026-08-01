@@ -80,8 +80,8 @@ export async function POST(
   `) as Array<{ id: string }>;
   // Permanent spend record — survives deletion of the dream (0009).
   await sql`
-    INSERT INTO usage_events (user_id, kind, input_tokens, output_tokens)
-    VALUES (${userId}, 'analysis', ${usage.input}, ${usage.output})
+    INSERT INTO usage_events (user_id, kind, input_tokens, output_tokens, billed_to)
+    VALUES (${userId}, 'analysis', ${usage.input}, ${usage.output}, ${got.billedTo})
   `;
   await markKeyVerified(got.keyId);
 

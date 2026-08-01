@@ -10,8 +10,10 @@ export type View = {
   accountLang: Lang;
   /** Whether both languages are prepared — decides if the toggle exists at all. */
   dual: boolean;
-  /** Whether an API key is on file. Nothing generates without one. */
+  /** Whether a key will be found — this account's own, or its sponsor's. */
   hasKey: boolean;
+  /** Whose key is paying, when it isn't this account's. */
+  sponsorEmail: string | null;
   /** The first account to exist administers the instance. */
   isOwner: boolean;
   /** Interface strings for `lang`. */
@@ -31,11 +33,27 @@ export type View = {
  * user doesn't read.
  */
 export async function resolveView(userId: string): Promise<View> {
-  const { language, dual, hasKey, isOwner } = await getLangSettings(userId);
+  const { language, dual, hasKey, sponsorEmail, isOwner } = await getLangSettings(userId);
   if (!dual) {
-    return { lang: language, accountLang: language, dual: false, hasKey, isOwner, t: dict(language) };
+    return {
+      lang: language,
+      accountLang: language,
+      dual: false,
+      hasKey,
+      sponsorEmail,
+      isOwner,
+      t: dict(language),
+    };
   }
   const jar = await cookies();
   const lang = asLang(jar.get(VIEW_LANG_COOKIE)?.value, language);
-  return { lang, accountLang: language, dual: true, hasKey, isOwner, t: dict(lang) };
+  return {
+    lang,
+    accountLang: language,
+    dual: true,
+    hasKey,
+    sponsorEmail,
+    isOwner,
+    t: dict(lang),
+  };
 }

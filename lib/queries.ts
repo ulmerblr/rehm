@@ -206,6 +206,10 @@ export type AccountRow = {
   isSelf: boolean;
   /** Who brought them in. Null for the owner and for anyone who predates 0022. */
   invitedByEmail: string | null;
+  /** True when this account's calls are billed to the viewer's key. */
+  onMyKey: boolean;
+  /** Tokens this account has put on the viewer's key, all time. */
+  billedToMe: { input: number; output: number };
 };
 
 /**
@@ -217,8 +221,13 @@ export async function listAccounts(viewerId: string): Promise<AccountRow[]> {
   const sql = getSql();
   try {
     const rows = (await sql`
-      SELECT u.id, u.email, u.role, u.created_at, inviter.email AS invited_by_email,
-             (SELECT count(*)::int FROM dreams d WHERE d.user_id = u.id) AS dreams
+      SELECT u.id, u.email, u.role, u.created_at, u.key_sponsor_id,
+             inviter.email AS invited_by_email,
+             (SELECT count(*)::int FROM dreams d WHERE d.user_id = u.id) AS dreams,
+             (SELECT coalesce(sum(e.input_tokens), 0) FROM usage_events e
+               WHERE e.user_id = u.id AND e.billed_to = ${viewerId}) AS billed_in,
+             (SELECT coalesce(sum(e.output_tokens), 0) FROM usage_events e
+               WHERE e.user_id = u.id AND e.billed_to = ${viewerId}) AS billed_out
       FROM users u
       LEFT JOIN users inviter ON inviter.id = u.invited_by
       ORDER BY u.created_at ASC
@@ -231,6 +240,8 @@ export async function listAccounts(viewerId: string): Promise<AccountRow[]> {
       dreams: toInt(r.dreams),
       isSelf: String(r.id) === viewerId,
       invitedByEmail: r.invited_by_email == null ? null : String(r.invited_by_email),
+      onMyKey: r.key_sponsor_id != null && String(r.key_sponsor_id) === viewerId,
+      billedToMe: { input: toInt(r.billed_in), output: toInt(r.billed_out) },
     }));
   } catch (err) {
     if (!isMissingSchema(err)) throw err;
@@ -571,6 +582,33 @@ export async function listTrendRuns(userId: string): Promise<TrendRun[]> {
 // Cost visibility: lifetime token total from the append-only usage ledger
 // (0009). Reading the ledger — not the per-row token columns — means the total
 // reflects money actually spent and never drops when a dream is deleted.
+/**
+ * What other people have put on this account's key.
+ *
+ * getTokenTotal only counts an account's own generating, because usage_events
+ * is keyed by who made the text. Sponsored spend lands under the sponsored
+ * account, so without this the person actually being billed cannot see it —
+ * which is the one number they most need.
+ */
+export async function getSponsoredTokenTotal(
+  userId: string
+): Promise<{ input: number; output: number }> {
+  const sql = getSql();
+  try {
+    const [row] = (await sql`
+      SELECT
+        coalesce(sum(input_tokens), 0)  AS input,
+        coalesce(sum(output_tokens), 0) AS output
+      FROM usage_events
+      WHERE billed_to = ${userId} AND user_id <> ${userId}
+    `) as Array<{ input: unknown; output: unknown }>;
+    return { input: toInt(row.input), output: toInt(row.output) };
+  } catch (err) {
+    if (!isMissingSchema(err)) throw err;
+    return { input: 0, output: 0 };
+  }
+}
+
 export async function getTokenTotal(userId: string): Promise<{ input: number; output: number }> {
   const sql = getSql();
   try {

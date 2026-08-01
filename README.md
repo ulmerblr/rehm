@@ -89,8 +89,17 @@ dreams, restatements, turns, analyses, and trend runs.
 `dreams.user_id`, `trend_runs.user_id`, `concepts.user_id`, and
 `tagging_runs.user_id` are real foreign keys to `users.id`.
 
-**No admin surface.** There is no admin role, no operator view, and no route that
-returns another user's data — it is absent, not merely gated.
+**No route returns another user's dreams.** Not gated — absent. There is no
+operator view of anyone's transcripts, restatements, analyses, or trend runs,
+and adding one would mean adding a query that does not exist today.
+
+**The owner.** The earliest account (`users.role = 'owner'`, set in 0021 — no
+email is hardcoded, so the answer stays right if the database is restored
+elsewhere) can do exactly three things no member can: list accounts with their
+dream *counts*, delete an account, and apply migrations. Members can still
+issue invitations, which is the one administrative act that is everyone's.
+`users.invited_by` records who brought whom (0022) and survives the invitation
+row being deleted.
 
 ### Keys
 
@@ -103,6 +112,18 @@ is unavailable and the UI says so in plain language — but **capture never depe
 on a key**: the raw transcript is saved first, and the restatement loop is
 resumable from `/dreams/[id]`. Token counts (`input_tokens`, `output_tokens`) are
 stored on every generated row; Settings shows a running per-user total.
+
+**Sponsored keys.** `users.key_sponsor_id` (0023) puts one account's calls on
+another's key, for the people worth inviting who will never set up an Anthropic
+account. The API accepts on/off only — never *whose* key — so no request shape
+bills a third party, and turning it on requires the sponsor to actually have an
+active key. A sponsor's key wins over the sponsored account's own; if the
+sponsor has none, the account's own is used rather than refusing to generate.
+The key is still only decrypted inside the request that makes the call and is
+never shown to the account spending it: what is granted is use, not possession.
+`usage_events.billed_to` records which account's key paid each call, so the
+person being billed can see it — deliberately not a foreign key, because
+`usage_events` refuses UPDATE and an `ON DELETE SET NULL` is an UPDATE.
 
 ## What "immutable" means here
 
