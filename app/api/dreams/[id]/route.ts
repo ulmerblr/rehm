@@ -42,8 +42,11 @@ export async function DELETE(
 
   try {
     await sql.transaction([
-      // Opt in to deletion for this transaction only (0008 guard).
-      sql`SET LOCAL rehm.allow_delete = 'on'`,
+      // Opt in to deletion for this transaction only (0008 guard). set_config
+      // with is_local=true is transaction-scoped, like SET LOCAL, but rides as
+      // an ordinary SELECT so it propagates reliably through the Neon HTTP
+      // transaction batch.
+      sql`SELECT set_config('rehm.allow_delete', 'on', true)`,
       // Children first (FKs to dreams are RESTRICT, not CASCADE).
       sql`DELETE FROM taggings WHERE dream_id = ${dreamId}`,
       sql`DELETE FROM trend_claims WHERE ${dreamId}::uuid = ANY (dream_ids)`,
@@ -54,9 +57,12 @@ export async function DELETE(
       // The immutable primary record, last, still scoped to the owner.
       sql`DELETE FROM dreams WHERE id = ${dreamId} AND user_id = ${userId}`,
     ]);
-  } catch {
+  } catch (err) {
+    // Surface the real Postgres error so a failed delete is diagnosable (e.g.
+    // "migration 0008 not applied" vs. an unexpected constraint). Single-user
+    // app; the message is a DB error string, not user data.
     return NextResponse.json(
-      { error: "server", message: "Could not delete the dream." },
+      { error: "server", message: err instanceof Error ? err.message : String(err) },
       { status: 500 }
     );
   }
