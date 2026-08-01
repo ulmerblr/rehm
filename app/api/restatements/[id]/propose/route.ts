@@ -10,6 +10,8 @@ import { userFacingAnthropicError } from "@/lib/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// This route calls the model, which runs well past the platform default (~10-15s).
+export const maxDuration = 60;
 
 const NO_KEY = {
   error: "no_key",
@@ -105,7 +107,7 @@ export async function POST(
     if (!proposal) throw new Error("empty");
   } catch (err) {
     const m = userFacingAnthropicError(err);
-    return NextResponse.json({ error: "llm", message: m.message }, { status: m.status });
+    return NextResponse.json({ error: "llm", message: m.message, detail: m.detail }, { status: m.status });
   }
 
   const baseNo = turns.reduce((n, t) => Math.max(n, Number(t.turn_no)), 0);

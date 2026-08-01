@@ -8,6 +8,8 @@ import { generateTitle } from "@/lib/titles";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// This route calls the model, which runs well past the platform default (~10-15s).
+export const maxDuration = 60;
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 

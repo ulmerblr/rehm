@@ -24,6 +24,7 @@ export default function TrendRunner({ dreams }: { dreams: DreamDate[] }) {
   const [to, setTo] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [detail, setDetail] = useState<string | null>(null);
 
   const scope: Scope = useMemo(() => {
     if (kind === "last_n") return { kind: "last_n", lastN };
@@ -44,6 +45,7 @@ export default function TrendRunner({ dreams }: { dreams: DreamDate[] }) {
 
   async function run() {
     setError(null);
+    setDetail(null);
     setBusy(true);
     try {
       const res = await fetch("/api/trends/run", {
@@ -52,7 +54,10 @@ export default function TrendRunner({ dreams }: { dreams: DreamDate[] }) {
         body: JSON.stringify({ scope }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.message || data?.error || `failed (${res.status})`);
+      if (!res.ok) {
+        if (data?.detail) setDetail(String(data.detail));
+        throw new Error(data?.message || data?.error || `failed (${res.status})`);
+      }
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "failed");
@@ -168,7 +173,17 @@ export default function TrendRunner({ dreams }: { dreams: DreamDate[] }) {
       >
         {busy ? "Running a trend pass…" : "Run a trend pass"}
       </button>
-      {error && <p className="notice" style={{ marginTop: 12, marginBottom: 0 }}>{error}</p>}
+      {error && (
+        <div className="notice" style={{ marginTop: 12 }}>
+          <div>{error}</div>
+          {detail && (
+            <details style={{ marginTop: 10, background: "none", border: "none", padding: 0 }}>
+              <summary style={{ fontSize: "0.85rem", padding: "4px 0" }}>Details</summary>
+              <div style={{ fontSize: "0.85rem", wordBreak: "break-word" }}>{detail}</div>
+            </details>
+          )}
+        </div>
+      )}
     </div>
   );
 }

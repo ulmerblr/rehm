@@ -9,6 +9,8 @@ import { userFacingAnthropicError } from "@/lib/errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// This route calls the model, which runs well past the platform default (~10-15s).
+export const maxDuration = 60;
 
 // Blind analysis from the raw transcript ONLY. Re-runnable; new row each time.
 export async function POST(
@@ -61,7 +63,7 @@ export async function POST(
     if (!analysis) throw new Error("empty");
   } catch (err) {
     const m = userFacingAnthropicError(err);
-    return NextResponse.json({ error: "llm", message: m.message }, { status: m.status });
+    return NextResponse.json({ error: "llm", message: m.message, detail: m.detail }, { status: m.status });
   }
 
   const [row] = (await sql`

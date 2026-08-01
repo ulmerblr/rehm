@@ -10,6 +10,10 @@ import { parseScope, scopeLabel, selectInScope } from "@/lib/scope";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// A trend pass reads the corpus and the model thinks before answering, so this
+// runs far longer than the platform's default function timeout (~10-15s). 60s
+// is the ceiling on every Vercel plan.
+export const maxDuration = 60;
 
 const SCHEMA = {
   type: "object",
@@ -107,7 +111,10 @@ export async function POST(req: NextRequest) {
     // by default. A trend pass over a growing corpus needs real headroom — if it
     // runs out mid-JSON the parse below fails with a useless error, so give it
     // room and check for truncation explicitly.
-    const message = await got.client.messages.create({
+    // Streamed, not a single request/response: a long generation would
+    // otherwise risk an HTTP read timeout before the answer is complete. We
+    // don't need the individual events, just the assembled message.
+    const stream = got.client.messages.stream({
       model: MODEL,
       max_tokens: 32000,
       system: TREND_PROMPT,
@@ -119,6 +126,7 @@ export async function POST(req: NextRequest) {
       ],
       output_config: { format: { type: "json_schema", schema: SCHEMA } },
     });
+    const message = await stream.finalMessage();
     if (message.stop_reason === "refusal") {
       return NextResponse.json(
         { error: "refusal", message: "The model declined this request." },
@@ -155,7 +163,10 @@ export async function POST(req: NextRequest) {
       .filter((c) => c.claim.length > 0 && c.dreamIds.length > 0);
   } catch (err) {
     const m = userFacingAnthropicError(err);
-    return NextResponse.json({ error: "llm", message: m.message }, { status: m.status });
+    return NextResponse.json(
+      { error: "llm", message: m.message, detail: m.detail },
+      { status: m.status }
+    );
   }
 
   const [run] = (await sql`
