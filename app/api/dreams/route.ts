@@ -50,16 +50,25 @@ export async function POST(req: NextRequest) {
   `) as Array<{ id: string }>;
 
   // Title lives in its own table (editable; not part of the immutable dream).
+  // Bookkeeping only — the dream is already saved, so nothing here may throw.
   if (titleResult && !("error" in got)) {
-    await sql`
-      INSERT INTO dream_titles (dream_id, title, source)
-      VALUES (${dream.id}, ${titleResult.title}, 'generated')
-      ON CONFLICT (dream_id) DO NOTHING
-    `;
-    await sql`
-      INSERT INTO usage_events (user_id, kind, input_tokens, output_tokens)
-      VALUES (${userId}, 'title', ${titleResult.usage.input}, ${titleResult.usage.output})
-    `;
+    try {
+      await sql`
+        INSERT INTO dream_titles (dream_id, title, source)
+        VALUES (${dream.id}, ${titleResult.title}, 'generated')
+        ON CONFLICT (dream_id) DO NOTHING
+      `;
+    } catch (err) {
+      console.error("[rehm] title write failed:", err);
+    }
+    try {
+      await sql`
+        INSERT INTO usage_events (user_id, kind, input_tokens, output_tokens)
+        VALUES (${userId}, 'title', ${titleResult.usage.input}, ${titleResult.usage.output})
+      `;
+    } catch (err) {
+      console.error("[rehm] usage write failed:", err);
+    }
     await markKeyVerified(got.keyId);
   }
 

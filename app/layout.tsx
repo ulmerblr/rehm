@@ -42,7 +42,10 @@ async function autoMigrate(): Promise<Diag> {
   }
 }
 
-function MigrationDiagnostic({
+// A failed migration is surfaced as a banner ABOVE the app, never instead of
+// it. Blocking the whole UI on a schema problem is what turned a bad migration
+// into a total outage; the queries degrade on their own, so let the app run.
+function MigrationBanner({
   file,
   error,
   applied,
@@ -52,26 +55,23 @@ function MigrationDiagnostic({
   applied: string[];
 }) {
   return (
-    <main>
-      <h1 style={{ marginBottom: 8 }}>Setting up the database…</h1>
-      <p className="muted" style={{ marginTop: 0 }}>
-        A schema update didn&apos;t apply cleanly, so the app is paused to avoid showing
-        broken data. It retries automatically — here is exactly what failed:
-      </p>
-      <div className="card">
+    <details className="notice" style={{ marginBottom: 18 }}>
+      <summary style={{ color: "var(--danger)" }}>
+        A schema update didn&apos;t apply — tap for details
+      </summary>
+      <div style={{ padding: "4px 0 12px" }}>
         <div className="seq">Failed migration</div>
-        <div style={{ fontWeight: 600, marginBottom: 12 }}>{file ?? "(unknown)"}</div>
+        <div style={{ fontWeight: 600, marginBottom: 10 }}>{file ?? "(unknown)"}</div>
         <div className="seq">Postgres error</div>
-        <div className="verbatim" style={{ marginTop: 6 }}>{error ?? "(no error text)"}</div>
-      </div>
-      <div className="card">
-        <div className="seq">Already applied ({applied.length})</div>
-        <div style={{ marginTop: 6, fontSize: "0.9rem" }}>
+        <div className="verbatim" style={{ marginTop: 6, marginBottom: 10 }}>
+          {error ?? "(no error text)"}
+        </div>
+        <div className="seq">Applied ({applied.length})</div>
+        <div style={{ fontSize: "0.85rem" }}>
           {applied.length ? applied.join(", ") : "(none)"}
         </div>
       </div>
-      <p className="muted">Reload in a moment, or send this screen to have it fixed.</p>
-    </main>
+    </details>
   );
 }
 
@@ -85,15 +85,14 @@ export default async function RootLayout({
     <html lang="en">
       <body>
         <div className="container">
-          {migration.status === "failed" ? (
-            <MigrationDiagnostic
+          {migration.status === "failed" && (
+            <MigrationBanner
               file={migration.file}
               error={migration.error}
               applied={migration.applied}
             />
-          ) : (
-            children
           )}
+          {children}
         </div>
       </body>
     </html>

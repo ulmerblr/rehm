@@ -17,6 +17,14 @@ function toIso(value: unknown): string | null {
   if (value == null) return null;
   return value instanceof Date ? value.toISOString() : new Date(String(value)).toISOString();
 }
+// A schema gap must degrade, never white-screen the app. Postgres reports a
+// missing table/column as "... does not exist"; callers below fall back to a
+// query that doesn't need it.
+function isMissingSchema(err: unknown): boolean {
+  const m = err instanceof Error ? err.message : String(err);
+  return /does not exist/i.test(m);
+}
+
 // A short, one-line title for the dream list, derived from the raw transcript
 // (no LLM, no cost). A dictation is often one long paragraph, so keying on the
 // first newline would show the whole thing — instead take the first sentence if
@@ -49,13 +57,24 @@ export type DreamListItem = {
 
 export async function listDreams(userId: string): Promise<DreamListItem[]> {
   const sql = getSql();
-  const rows = (await sql`
-    SELECT d.id, d.sequence_no, d.dreamt_on, d.raw_transcript, t.title
-    FROM dreams d
-    LEFT JOIN dream_titles t ON t.dream_id = d.id
-    WHERE d.user_id = ${userId}
-    ORDER BY d.sequence_no DESC
-  `) as Array<Record<string, unknown>>;
+  let rows: Array<Record<string, unknown>>;
+  try {
+    rows = (await sql`
+      SELECT d.id, d.sequence_no, d.dreamt_on, d.raw_transcript, t.title
+      FROM dreams d
+      LEFT JOIN dream_titles t ON t.dream_id = d.id
+      WHERE d.user_id = ${userId}
+      ORDER BY d.sequence_no DESC
+    `) as Array<Record<string, unknown>>;
+  } catch (err) {
+    if (!isMissingSchema(err)) throw err;
+    // dream_titles not created yet — show derived titles rather than nothing.
+    rows = (await sql`
+      SELECT id, sequence_no, dreamt_on, raw_transcript, NULL AS title
+      FROM dreams WHERE user_id = ${userId}
+      ORDER BY sequence_no DESC
+    `) as Array<Record<string, unknown>>;
+  }
   return rows.map((r) => {
     const stored = r.title == null ? "" : String(r.title).trim();
     return {
@@ -90,12 +109,21 @@ export type Dream = {
 
 export async function getDream(id: string, userId: string): Promise<Dream | null> {
   const sql = getSql();
-  const rows = (await sql`
-    SELECT d.id, d.sequence_no, d.dreamt_on, d.capture_method, d.raw_transcript, t.title
-    FROM dreams d
-    LEFT JOIN dream_titles t ON t.dream_id = d.id
-    WHERE d.id = ${id} AND d.user_id = ${userId}
-  `) as Array<Record<string, unknown>>;
+  let rows: Array<Record<string, unknown>>;
+  try {
+    rows = (await sql`
+      SELECT d.id, d.sequence_no, d.dreamt_on, d.capture_method, d.raw_transcript, t.title
+      FROM dreams d
+      LEFT JOIN dream_titles t ON t.dream_id = d.id
+      WHERE d.id = ${id} AND d.user_id = ${userId}
+    `) as Array<Record<string, unknown>>;
+  } catch (err) {
+    if (!isMissingSchema(err)) throw err;
+    rows = (await sql`
+      SELECT id, sequence_no, dreamt_on, capture_method, raw_transcript, NULL AS title
+      FROM dreams WHERE id = ${id} AND user_id = ${userId}
+    `) as Array<Record<string, unknown>>;
+  }
   if (rows.length === 0) return null;
   const r = rows[0];
   const stored = r.title == null ? "" : String(r.title).trim();
@@ -245,13 +273,36 @@ export async function listTrendRuns(userId: string): Promise<TrendRun[]> {
 // reflects money actually spent and never drops when a dream is deleted.
 export async function getTokenTotal(userId: string): Promise<{ input: number; output: number }> {
   const sql = getSql();
-  const [row] = (await sql`
-    SELECT
-      coalesce(sum(input_tokens), 0)  AS input,
-      coalesce(sum(output_tokens), 0) AS output
-    FROM usage_events WHERE user_id = ${userId}
-  `) as Array<{ input: unknown; output: unknown }>;
-  return { input: toInt(row.input), output: toInt(row.output) };
+  try {
+    const [row] = (await sql`
+      SELECT
+        coalesce(sum(input_tokens), 0)  AS input,
+        coalesce(sum(output_tokens), 0) AS output
+      FROM usage_events WHERE user_id = ${userId}
+    `) as Array<{ input: unknown; output: unknown }>;
+    return { input: toInt(row.input), output: toInt(row.output) };
+  } catch (err) {
+    if (!isMissingSchema(err)) throw err;
+    // Ledger not created yet — fall back to summing the per-row token columns.
+    const [row] = (await sql`
+      SELECT
+        coalesce(sum(input_tokens), 0)  AS input,
+        coalesce(sum(output_tokens), 0) AS output
+      FROM (
+        SELECT r.input_tokens, r.output_tokens
+          FROM restatements r JOIN dreams d ON d.id = r.dream_id
+          WHERE d.user_id = ${userId}
+        UNION ALL
+        SELECT a.input_tokens, a.output_tokens
+          FROM analyses a JOIN dreams d ON d.id = a.dream_id
+          WHERE d.user_id = ${userId}
+        UNION ALL
+        SELECT input_tokens, output_tokens
+          FROM trend_runs WHERE user_id = ${userId}
+      ) t
+    `) as Array<{ input: unknown; output: unknown }>;
+    return { input: toInt(row.input), output: toInt(row.output) };
+  }
 }
 
 export type KeyInfo = {
