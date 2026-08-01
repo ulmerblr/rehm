@@ -206,25 +206,16 @@ export async function listTrendRuns(userId: string): Promise<TrendRun[]> {
   return runs;
 }
 
-// Cost visibility: running token total across all of the user's generated rows.
+// Cost visibility: lifetime token total from the append-only usage ledger
+// (0009). Reading the ledger — not the per-row token columns — means the total
+// reflects money actually spent and never drops when a dream is deleted.
 export async function getTokenTotal(userId: string): Promise<{ input: number; output: number }> {
   const sql = getSql();
   const [row] = (await sql`
     SELECT
       coalesce(sum(input_tokens), 0)  AS input,
       coalesce(sum(output_tokens), 0) AS output
-    FROM (
-      SELECT r.input_tokens, r.output_tokens
-        FROM restatements r JOIN dreams d ON d.id = r.dream_id
-        WHERE d.user_id = ${userId}
-      UNION ALL
-      SELECT a.input_tokens, a.output_tokens
-        FROM analyses a JOIN dreams d ON d.id = a.dream_id
-        WHERE d.user_id = ${userId}
-      UNION ALL
-      SELECT input_tokens, output_tokens
-        FROM trend_runs WHERE user_id = ${userId}
-    ) t
+    FROM usage_events WHERE user_id = ${userId}
   `) as Array<{ input: unknown; output: unknown }>;
   return { input: toInt(row.input), output: toInt(row.output) };
 }

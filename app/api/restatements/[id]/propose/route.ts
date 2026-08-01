@@ -126,6 +126,9 @@ export async function POST(
         SET input_tokens = coalesce(input_tokens, 0) + ${usage.input},
             output_tokens = coalesce(output_tokens, 0) + ${usage.output}
         WHERE id = ${restatementId}`,
+    // Permanent spend record — survives deletion of the dream (0009).
+    sql`INSERT INTO usage_events (user_id, kind, input_tokens, output_tokens)
+        VALUES (${userId}, 'restatement', ${usage.input}, ${usage.output})`,
   ]);
   await markKeyVerified(got.keyId);
 

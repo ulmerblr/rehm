@@ -63,6 +63,11 @@ export async function POST(
     VALUES (${dreamId}, ${analysis}, ${MODEL}, ${ANALYSIS_PROMPT_VERSION}, true, ${usage.input}, ${usage.output})
     RETURNING id
   `) as Array<{ id: string }>;
+  // Permanent spend record — survives deletion of the dream (0009).
+  await sql`
+    INSERT INTO usage_events (user_id, kind, input_tokens, output_tokens)
+    VALUES (${userId}, 'analysis', ${usage.input}, ${usage.output})
+  `;
   await markKeyVerified(got.keyId);
 
   return NextResponse.json({ id: row.id });

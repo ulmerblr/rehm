@@ -125,6 +125,11 @@ export async function POST(req: NextRequest) {
       VALUES (${run.id}, ${c.claim}, ${c.dreamIds}::uuid[])
     `;
   }
+  // Permanent spend record — independent of any single dream (0009).
+  await sql`
+    INSERT INTO usage_events (user_id, kind, input_tokens, output_tokens)
+    VALUES (${userId}, 'trend', ${usage.input}, ${usage.output})
+  `;
   await markKeyVerified(got.keyId);
 
   return NextResponse.json({ id: run.id, corpusSize, claimsWritten: claims.length });

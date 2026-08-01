@@ -215,3 +215,56 @@ summary {
   border-radius: 12px;
   padding: 12px 14px;
 }
+
+/* Initials avatar */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: #fff;
+  font-weight: 700;
+  line-height: 1;
+  flex: none;
+  letter-spacing: 0.02em;
+}
+
+/* Signed-in chip in the header (avatar + username, links to settings) */
+.profile-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 12px 4px 4px;
+  max-width: 52vw;
+}
+
+.profile-chip:active {
+  filter: brightness(1.2);
+}
+
+.profile-chip-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Section header row with a little more breathing room above it */
+.section-head {
+  margin-top: 30px;
+}
+
+/* Big number for the usage panel */
+.metric {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
