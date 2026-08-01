@@ -47,11 +47,15 @@ function Icon({ name }: { name: (typeof TABS)[number]["icon"] }) {
           <path d="M14 7h7v7" />
         </svg>
       );
+    // Sliders, not a gear: a circle ringed by spokes collapses into a sunburst
+    // at this size. Two tracks with offset knobs stay legible at 24px.
     case "gear":
       return (
         <svg {...common}>
-          <circle cx="12" cy="12" r="3.2" />
-          <path d="M12 2v2.5M12 19.5V22M22 12h-2.5M4.5 12H2M19.07 4.93l-1.77 1.77M6.7 17.3l-1.77 1.77M19.07 19.07 17.3 17.3M6.7 6.7 4.93 4.93" />
+          <path d="M3 8h8.4M16.6 8H21" />
+          <circle cx="14" cy="8" r="2.6" />
+          <path d="M3 16h4.4M12.6 16H21" />
+          <circle cx="10" cy="16" r="2.6" />
         </svg>
       );
   }
