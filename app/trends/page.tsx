@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireUserId } from "@/lib/session";
 import { listTrendRuns, listDreamDates, listDreams, type TrendRun } from "@/lib/queries";
-import { formatStamp } from "@/lib/scope";
+import { formatDreamNumbers, formatStamp } from "@/lib/scope";
 import ExportButton from "@/app/components/ExportButton";
 import TrendRunner from "./TrendRunner";
 
@@ -20,8 +20,8 @@ export default async function Trends() {
     <main>
       <h1>Trends</h1>
       <p className="machine">
-        Every claim cites the dreams it rests on. A pass is kept at the corpus size
-        it was drawn from, and never overwritten.
+        Every claim cites the dreams it rests on. Each pass is kept at the size it
+        was drawn from, so a claim made at 9 dreams can be checked against 20.
       </p>
 
       <div style={{ margin: "22px 0 34px" }}>
@@ -39,10 +39,16 @@ export default async function Trends() {
           {runs.map((run) => (
             <details key={run.id} className="run">
               <summary>
-                <span className="run-corpus">corpus {run.corpusSize}</span>
+                <span className="run-dreams">
+                  {run.dreamNumbers.length > 0
+                    ? `Dreams ${formatDreamNumbers(run.dreamNumbers)}`
+                    : run.scopeLabel}
+                </span>
                 <span className="stamp">
-                  {formatStamp(run.createdAt)}
-                  {run.source === "dreams_and_analyses" ? " · + analyses" : ""}
+                  {run.source === "dreams_and_analyses"
+                    ? "read dreams and analyses"
+                    : "read dreams only"}{" "}
+                  · {formatStamp(run.createdAt)}
                 </span>
               </summary>
 
@@ -84,7 +90,7 @@ export default async function Trends() {
                 )}
 
                 <div className="stamp stamp-machine" style={{ marginTop: 20 }}>
-                  {run.scopeLabel} · {run.model} · {run.promptVersion}
+                  at {run.corpusSize} dream{run.corpusSize === 1 ? "" : "s"} · {run.scopeLabel} · {run.model} · {run.promptVersion}
                 </div>
                 <div style={{ marginTop: 14 }}>
                   <ExportButton text={buildTrendExport(run)} label="Copy as text" />

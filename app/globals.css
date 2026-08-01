@@ -9,23 +9,24 @@
  * Every value below derives from the tokens. Nothing ad-hoc. */
 
 :root {
-  /* Surface — warm near-black; this is read at 6am in a dark room. */
-  --ink: #0c0a09;
-  --ink-raised: #16120f;
-  --rule: #2a2320;
+  /* Surface — deep ink navy. The cold ground is the point: warm testimony
+     advances against it, cool machine text recedes into it. */
+  --ink: #0a101c;
+  --ink-raised: #111a2b;
+  --rule: #1e2a3e;
 
-  /* The dreamer's own voice. */
-  --said: #f0e9df;
-  --said-dim: #9a8e82;
+  /* The dreamer's own voice — warm cream. */
+  --said: #efe8dc;
+  --said-dim: #9c9484;
 
-  /* Machine-generated. Deliberately cooler and quieter than --said. */
-  --machine: #a8b4c0;
-  --machine-dim: #6b7a8a;
+  /* Machine-generated. Cooler, quieter, closer to the ground. */
+  --machine: #94a6be;
+  --machine-dim: #63748f;
 
   /* Exactly one accent: primary action and active navigation. */
-  --brass: #c9964a;
+  --brass: #d69b4c;
   /* Unresolved state only. Never decorative, never a second accent. */
-  --flag: #b4694a;
+  --flag: #c4705a;
 
   --font-said-stack: var(--font-said), Georgia, "Times New Roman", serif;
   --font-ui-stack: var(--font-ui), "Helvetica Neue", Arial, sans-serif;
@@ -423,6 +424,96 @@ label {
 
 /* ---- Home -------------------------------------------------------------- */
 
+/* The timeline is the signature element: every dream placed on its real date,
+   so clustering and silence are visible at a glance rather than inferred from
+   a count. Unanalyzed ticks stand taller and carry the flag colour. */
+.timeline {
+  position: relative;
+  height: 46px;
+  margin-top: 30px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.tick {
+  position: absolute;
+  top: 0;
+  bottom: 1px;
+  width: 18px;
+  margin-left: -9px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.tick::before {
+  content: "";
+  width: 2px;
+  height: 22px;
+  background: var(--said-dim);
+}
+
+.tick:hover::before {
+  background: var(--said);
+}
+
+.tick-open::before {
+  height: 34px;
+  background: var(--flag);
+}
+
+.timeline-caption {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* Three figures, read across the room. Numerals large in mono, labels quiet. */
+.figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  padding-top: 26px;
+  margin-top: 26px;
+  border-top: 1px solid var(--rule);
+}
+
+.figure-value {
+  font-family: var(--font-data-stack);
+  font-size: 2.75rem;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--said);
+  letter-spacing: -0.02em;
+}
+
+.figure-label {
+  font-family: var(--font-ui-stack);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--said-dim);
+  margin-top: 8px;
+  max-width: 9rem;
+}
+
+/* Unresolved work: one actionable line, flag colour, nothing else. */
+.unresolved {
+  display: block;
+  margin-top: 26px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--font-ui-stack);
+  font-size: 0.9375rem;
+  color: var(--flag);
+  text-decoration: none;
+}
+
+.unresolved:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .lede-seq {
   font-family: var(--font-data-stack);
   font-size: 2.75rem;
@@ -553,12 +644,12 @@ label {
   display: none;
 }
 
-.run-corpus {
+.run-corpus,
+.run-dreams {
   font-family: var(--font-data-stack);
-  font-size: 1rem;
-  letter-spacing: 0.03em;
+  font-size: 0.9375rem;
+  letter-spacing: 0.02em;
   color: var(--said);
-  text-transform: uppercase;
 }
 
 .run-body {

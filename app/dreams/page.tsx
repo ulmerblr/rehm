@@ -17,18 +17,45 @@ function formatDreamDate(iso: string): string {
 
 // A log, not a feed: ordinal in the left margin, hairlines between entries,
 // no cards.
-export default async function DreamLog() {
+export default async function DreamLog({
+  searchParams,
+}: {
+  searchParams: Promise<{ show?: string }>;
+}) {
   const userId = await requireUserId();
-  const dreams = await listDreams(userId);
+  const { show } = await searchParams;
+  const all = await listDreams(userId);
+
+  const onlyUnanalyzed = show === "unanalyzed";
+  const dreams = onlyUnanalyzed ? all.filter((d) => d.analysisCount === 0) : all;
 
   return (
     <main>
       <h1>Log</h1>
 
+      {onlyUnanalyzed && (
+        <p className="row" style={{ gap: 14, marginTop: -6, marginBottom: 18 }}>
+          <span className="stamp stamp-flag">
+            showing {dreams.length} not analyzed
+          </span>
+          <Link href="/dreams" className="stamp" style={{ textDecoration: "none" }}>
+            show all {all.length}
+          </Link>
+        </p>
+      )}
+
       {dreams.length === 0 ? (
         <p className="said">
-          Nothing logged yet. <Link href="/record">Record a dream</Link> and it will
-          be the first entry.
+          {onlyUnanalyzed ? (
+            <>
+              Everything is analyzed. <Link href="/dreams">Show the whole log</Link>.
+            </>
+          ) : (
+            <>
+              Nothing logged yet. <Link href="/record">Record a dream</Link> and it
+              will be the first entry.
+            </>
+          )}
         </p>
       ) : (
         <div>

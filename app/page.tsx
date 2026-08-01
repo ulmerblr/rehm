@@ -1,25 +1,21 @@
 import Link from "next/link";
 import { requireUserId } from "@/lib/session";
-import { getDashboardStats } from "@/lib/queries";
+import { listDreams } from "@/lib/queries";
+import { buildCorpus, formatDayShort } from "@/lib/corpus";
 
 export const dynamic = "force-dynamic";
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-// Format YYYY-MM-DD without Date(), which would shift the day across timezones.
-function formatDreamDate(iso: string): string {
-  const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!m) return iso;
-  const [, y, mo, d] = m;
-  return `${MONTHS[Number(mo) - 1] ?? mo} ${Number(d)} ${y}`;
-}
-
-// The last dream is the hero — not a stat block. Enough of the transcript is
-// shown that you start reading it, in the dreamer's own type.
+// A longitudinal study lives or dies on cadence, not just sample size: nine
+// dreams across three days is a different instrument from nine across six
+// months. So the dashboard reports the shape of the record — when it was fed,
+// and where the silences are — before anything derived from it.
 export default async function Home() {
   const userId = await requireUserId();
-  const stats = await getDashboardStats(userId);
-  const unanalyzed = stats.dreams - stats.analyzedDreams;
+  const dreams = await listDreams(userId);
+  const corpus = buildCorpus(dreams);
+
+  const latest = dreams[0] ?? null;
+  const unanalyzed = dreams.filter((d) => d.analysisCount === 0).length;
 
   return (
     <main>
@@ -27,44 +23,78 @@ export default async function Home() {
         Record a dream
       </Link>
 
-      {!stats.lastDream ? (
-        <div style={{ marginTop: 40 }}>
-          <p className="said" style={{ marginBottom: 18 }}>
-            Nothing recorded yet. The first one can be a fragment — a room, a face,
-            the one image that stayed.
-          </p>
-        </div>
+      {dreams.length === 0 ? (
+        <p className="said" style={{ marginTop: 40 }}>
+          Nothing recorded yet. The first one can be a fragment — a room, a face,
+          the one image that stayed.
+        </p>
       ) : (
         <>
-          <Link
-            href={`/dreams/${stats.lastDream.id}`}
-            style={{ display: "block", textDecoration: "none", marginTop: 38 }}
-          >
-            <span className="lede-seq">
-              {String(stats.lastDream.sequenceNo).padStart(2, "0")}
-            </span>
-            <div className="said-title">{stats.lastDream.title}</div>
-            <div className="said lede-excerpt">{stats.lastDreamExcerpt}</div>
-          </Link>
+          {corpus.ticks.length > 0 && (
+            <>
+              <div className="timeline">
+                {corpus.ticks.map((t) => (
+                  <Link
+                    key={t.id}
+                    href={`/dreams/${t.id}`}
+                    className={t.analyzed ? "tick" : "tick tick-open"}
+                    style={{ left: `${t.pct}%` }}
+                    aria-label={`Dream ${t.sequenceNo}, ${t.date}${t.analyzed ? "" : ", not analyzed"}`}
+                  />
+                ))}
+              </div>
+              <div className="timeline-caption">
+                <span className="stamp">
+                  {formatDayShort(corpus.firstDate as string)} —{" "}
+                  {formatDayShort(corpus.lastDate as string)}
+                </span>
+                <span className="stamp">
+                  {corpus.spanDays} day{corpus.spanDays === 1 ? "" : "s"}
+                  {corpus.undated > 0 ? ` · ${corpus.undated} undated` : ""}
+                </span>
+              </div>
+            </>
+          )}
 
-          <div className="ledger">
-            <span className="stamp">
-              {stats.dreams} dream{stats.dreams === 1 ? "" : "s"}
-            </span>
-            {stats.lastDream.dreamtOn && (
-              <span className="stamp">last {formatDreamDate(stats.lastDream.dreamtOn)}</span>
-            )}
-            <span className="stamp">
-              {stats.lastTrendCorpus === null
-                ? "no trend pass"
-                : `trend at corpus ${stats.lastTrendCorpus}`}
-            </span>
-            {unanalyzed > 0 && (
-              <Link href="/dreams" className="stamp stamp-flag" style={{ textDecoration: "none" }}>
-                {unanalyzed} unanalyzed
-              </Link>
-            )}
+          <div className="figures">
+            <div>
+              <div className="figure-value">{dreams.length}</div>
+              <div className="figure-label">
+                dream{dreams.length === 1 ? "" : "s"} recorded
+              </div>
+            </div>
+            <div>
+              <div className="figure-value">
+                {corpus.daysSinceLast === null ? "—" : corpus.daysSinceLast}
+              </div>
+              <div className="figure-label">days since the last one</div>
+            </div>
+            <div>
+              <div className="figure-value">
+                {corpus.longestGap === null ? "—" : corpus.longestGap}
+              </div>
+              <div className="figure-label">days, longest gap</div>
+            </div>
           </div>
+
+          {unanalyzed > 0 && (
+            <Link href="/dreams?show=unanalyzed" className="unresolved">
+              {unanalyzed} dream{unanalyzed === 1 ? "" : "s"} not analyzed
+            </Link>
+          )}
+
+          {latest && (
+            <Link
+              href={`/dreams/${latest.id}`}
+              style={{ display: "block", textDecoration: "none", marginTop: 38 }}
+            >
+              <span className="lede-seq">
+                {String(latest.sequenceNo).padStart(2, "0")}
+              </span>
+              <div className="said-title">{latest.title}</div>
+              <div className="said lede-excerpt">{latest.snippet}</div>
+            </Link>
+          )}
         </>
       )}
     </main>
