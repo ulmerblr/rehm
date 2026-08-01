@@ -12,12 +12,20 @@ import {
 
 type DreamDate = { sequenceNo: number; dreamtOn: string | null };
 type Kind = "all" | "last_n" | "range";
+type Source = "dreams" | "dreams_and_analyses";
 
 // Scope picker for a trend pass. The dream list is passed in so the count of
 // dreams a scope covers is previewed live — you see exactly what the run will
 // read before spending anything on it.
-export default function TrendRunner({ dreams }: { dreams: DreamDate[] }) {
+export default function TrendRunner({
+  dreams,
+  analyzedCount,
+}: {
+  dreams: DreamDate[];
+  analyzedCount: number;
+}) {
   const router = useRouter();
+  const [source, setSource] = useState<Source>("dreams");
   const [kind, setKind] = useState<Kind>("all");
   const [lastN, setLastN] = useState(Math.min(5, Math.max(dreams.length, 1)));
   const [from, setFrom] = useState("");
@@ -51,7 +59,7 @@ export default function TrendRunner({ dreams }: { dreams: DreamDate[] }) {
       const res = await fetch("/api/trends/run", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ scope }),
+        body: JSON.stringify({ scope, source }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -71,7 +79,33 @@ export default function TrendRunner({ dreams }: { dreams: DreamDate[] }) {
 
   return (
     <div className="card" style={{ margin: 0 }}>
-      <div className="seq" style={{ marginBottom: 8 }}>Scope</div>
+      <div className="seq" style={{ marginBottom: 8 }}>Read</div>
+      <div className="segmented">
+        {(
+          [
+            ["dreams", "Dreams"],
+            ["dreams_and_analyses", "+ Analyses"],
+          ] as Array<[Source, string]>
+        ).map(([s, label]) => (
+          <button
+            key={s}
+            className={source === s ? "segment segment-on" : "segment"}
+            onClick={() => setSource(s)}
+            disabled={busy}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <p className="muted" style={{ margin: "8px 0 0", fontSize: "0.85rem" }}>
+        {source === "dreams"
+          ? "Trends drawn from what you actually said."
+          : analyzedCount === 0
+            ? "No dreams are analyzed yet — this will read the same as Dreams."
+            : `Also reads each dream's latest analysis (${analyzedCount} analyzed). Richer, but it can find patterns in its own earlier readings.`}
+      </p>
+
+      <div className="seq" style={{ margin: "18px 0 8px" }}>Scope</div>
 
       <div className="segmented">
         {(

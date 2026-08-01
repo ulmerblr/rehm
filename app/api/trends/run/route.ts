@@ -7,7 +7,7 @@ import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { getUserAnthropic, markKeyVerified } from "@/lib/keys";
 import { userFacingAnthropicError } from "@/lib/errors";
 import { parseScope, scopeLabel, selectInScope } from "@/lib/scope";
-import { addendaByDream } from "@/lib/queries";
+import { addendaByDream, latestAnalysisByDream } from "@/lib/queries";
 import { composeDreamText } from "@/lib/dreamText";
 
 export const runtime = "nodejs";
@@ -48,7 +48,9 @@ export async function POST(req: NextRequest) {
   const userId = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const body = (await req.json().catch(() => ({}))) as { scope?: unknown };
+  const body = (await req.json().catch(() => ({}))) as { scope?: unknown; source?: unknown };
+  const source: "dreams" | "dreams_and_analyses" =
+    body.source === "dreams_and_analyses" ? "dreams_and_analyses" : "dreams";
   const parsed = parseScope(body.scope);
   if ("error" in parsed) {
     return NextResponse.json({ error: "scope", message: parsed.error }, { status: 400 });
@@ -93,12 +95,22 @@ export async function POST(req: NextRequest) {
   // Additions made after capture are part of the record and are read here too,
   // each marked with when it surfaced.
   const addenda = await addendaByDream(userId);
+  // Only fetched when asked for: reading prior interpretations is opt-in.
+  const analyses =
+    source === "dreams_and_analyses" ? await latestAnalysisByDream(userId) : new Map<string, string>();
+
   const idBySeq = new Map<number, string>();
   const corpusText = scoped
     .map(({ sequenceNo, dreamtOn, row }) => {
       idBySeq.set(sequenceNo, String(row.id));
       const text = composeDreamText(row.raw_transcript, addenda.get(String(row.id)) ?? []);
-      return `Dream ${sequenceNo} (${dreamtOn ?? "no date"}):\n${text}`;
+      const analysis = analyses.get(String(row.id));
+      const block = `Dream ${sequenceNo} (${dreamtOn ?? "no date"}):\n${text}`;
+      // Interpretations are labelled so the model never mistakes a prior
+      // reading for something the dreamer said.
+      return analysis
+        ? `${block}\n\n[Earlier interpretation of Dream ${sequenceNo} — not the dreamer's words]\n${analysis}`
+        : block;
     })
     .join("\n\n---\n\n");
 
@@ -182,13 +194,13 @@ export async function POST(req: NextRequest) {
   const [run] = (await sql`
     INSERT INTO trend_runs (
       user_id, corpus_size, model, prompt_version, body, closing, dream_numbers,
-      input_tokens, output_tokens,
+      source, input_tokens, output_tokens,
       scope_kind, scope_label, scope_last_n, scope_from, scope_to
     )
     VALUES (
       ${userId}, ${corpusSize}, ${MODEL}, ${TREND_PROMPT_VERSION}, ${summary},
       ${closing}, ${scoped.map((d) => d.sequenceNo)}::int[],
-      ${usage.input}, ${usage.output},
+      ${source}, ${usage.input}, ${usage.output},
       ${scope.kind}, ${label},
       ${scope.kind === "last_n" ? scope.lastN : null},
       ${scope.kind === "range" ? scope.from : null},

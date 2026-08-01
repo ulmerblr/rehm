@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireUserId } from "@/lib/session";
-import { listTrendRuns, listDreamDates, type TrendRun } from "@/lib/queries";
+import { listTrendRuns, listDreamDates, listDreams, type TrendRun } from "@/lib/queries";
 import { formatDreamNumbers, formatStamp } from "@/lib/scope";
 import ExportButton from "@/app/components/ExportButton";
 import Header from "@/app/components/Header";
@@ -10,7 +10,12 @@ export const dynamic = "force-dynamic";
 
 export default async function Trends() {
   const userId = await requireUserId();
-  const [runs, dreams] = await Promise.all([listTrendRuns(userId), listDreamDates(userId)]);
+  const [runs, dreams, dreamList] = await Promise.all([
+    listTrendRuns(userId),
+    listDreamDates(userId),
+    listDreams(userId),
+  ]);
+  const analyzedCount = dreamList.filter((d) => d.analysisCount > 0).length;
 
   return (
     <main>
@@ -28,7 +33,7 @@ export default async function Trends() {
         {dreams.length === 0 ? (
           <p className="muted">Record a dream first — there is nothing to look across yet.</p>
         ) : (
-          <TrendRunner dreams={dreams} />
+          <TrendRunner dreams={dreams} analyzedCount={analyzedCount} />
         )}
       </div>
 

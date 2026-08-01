@@ -209,6 +209,12 @@ summary {
   margin-right: 6px;
 }
 
+/* A tag marking something done (e.g. an analyzed dream). */
+.tag-ok {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
 .notice {
   border: 1px solid var(--danger);
   color: var(--danger);

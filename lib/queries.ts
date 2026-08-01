@@ -62,6 +62,7 @@ export type DreamListItem = {
   dreamtOn: string | null;
   title: string;
   snippet: string;
+  analysisCount: number;
 };
 
 export async function listDreams(userId: string): Promise<DreamListItem[]> {
@@ -69,19 +70,26 @@ export async function listDreams(userId: string): Promise<DreamListItem[]> {
   let rows: Array<Record<string, unknown>>;
   try {
     rows = (await sql`
-      SELECT d.id, d.sequence_no, d.dreamt_on, d.raw_transcript, t.title
+      SELECT d.id, d.sequence_no, d.dreamt_on, d.raw_transcript, t.title,
+             count(a.id) AS analysis_count
       FROM dreams d
       LEFT JOIN dream_titles t ON t.dream_id = d.id
+      LEFT JOIN analyses a ON a.dream_id = d.id
       WHERE d.user_id = ${userId}
+      GROUP BY d.id, d.sequence_no, d.dreamt_on, d.raw_transcript, t.title
       ORDER BY d.sequence_no DESC
     `) as Array<Record<string, unknown>>;
   } catch (err) {
     if (!isMissingSchema(err)) throw err;
     // dream_titles not created yet — show derived titles rather than nothing.
     rows = (await sql`
-      SELECT id, sequence_no, dreamt_on, raw_transcript, NULL AS title
-      FROM dreams WHERE user_id = ${userId}
-      ORDER BY sequence_no DESC
+      SELECT d.id, d.sequence_no, d.dreamt_on, d.raw_transcript, NULL AS title,
+             count(a.id) AS analysis_count
+      FROM dreams d
+      LEFT JOIN analyses a ON a.dream_id = d.id
+      WHERE d.user_id = ${userId}
+      GROUP BY d.id, d.sequence_no, d.dreamt_on, d.raw_transcript
+      ORDER BY d.sequence_no DESC
     `) as Array<Record<string, unknown>>;
   }
   return rows.map((r) => {
@@ -94,6 +102,7 @@ export async function listDreams(userId: string): Promise<DreamListItem[]> {
       // from the transcript for dreams that have no title row yet.
       title: stored || deriveTitle(r.raw_transcript as string),
       snippet: deriveSnippet(r.raw_transcript as string),
+      analysisCount: toInt(r.analysis_count),
     };
   });
 }
@@ -210,6 +219,21 @@ export async function addendaByDream(userId: string): Promise<Map<string, Addend
   } catch (err) {
     if (!isMissingSchema(err)) throw err;
   }
+  return out;
+}
+
+// The most recent analysis per dream, for a trend pass that reads
+// interpretations alongside the transcripts.
+export async function latestAnalysisByDream(userId: string): Promise<Map<string, string>> {
+  const sql = getSql();
+  const rows = (await sql`
+    SELECT DISTINCT ON (a.dream_id) a.dream_id, a.body
+    FROM analyses a JOIN dreams d ON d.id = a.dream_id
+    WHERE d.user_id = ${userId} AND a.body IS NOT NULL
+    ORDER BY a.dream_id, a.created_at DESC
+  `) as Array<Record<string, unknown>>;
+  const out = new Map<string, string>();
+  for (const r of rows) out.set(String(r.dream_id), String(r.body));
   return out;
 }
 

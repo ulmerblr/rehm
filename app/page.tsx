@@ -3,6 +3,7 @@ import { requireUserId } from "@/lib/session";
 import { listDreams, getUserEmail } from "@/lib/queries";
 import Header from "@/app/components/Header";
 import ProfileChip from "@/app/components/ProfileChip";
+import AnalyzeInline from "@/app/components/AnalyzeInline";
 
 export const dynamic = "force-dynamic";
 
@@ -46,14 +47,19 @@ export default async function Home() {
       ) : (
         <div className="stack" style={{ marginTop: 8 }}>
           {dreams.map((d) => (
-            <Link key={d.id} href={`/dreams/${d.id}`} className="card card-link dream-row" style={{ margin: 0 }}>
-              <div className="dream-title">{d.title}</div>
-              <div className="dream-snippet">{d.snippet}</div>
-              <div className="seq" style={{ marginTop: 6 }}>
-                Dream {d.sequenceNo}
-                {d.dreamtOn ? ` · ${formatDreamDate(d.dreamtOn)}` : ""}
+            <div key={d.id} className="card dream-row" style={{ margin: 0 }}>
+              <Link href={`/dreams/${d.id}`} className="card-link">
+                <div className="dream-title">{d.title}</div>
+                <div className="dream-snippet">{d.snippet}</div>
+                <div className="seq" style={{ marginTop: 6 }}>
+                  Dream {d.sequenceNo}
+                  {d.dreamtOn ? ` · ${formatDreamDate(d.dreamtOn)}` : ""}
+                </div>
+              </Link>
+              <div className="row" style={{ marginTop: 10 }}>
+                <AnalyzeInline dreamId={d.id} count={d.analysisCount} />
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       )}
