@@ -24,30 +24,32 @@
 --   ALTER ROLE rehm_app WITH LOGIN PASSWORD '...';
 -- then point DATABASE_URL at rehm_app.
 --
--- OWNER PIN: must be applied as the same owner role that applied 0001, so the
--- ALTER DEFAULT PRIVILEGES below (no FOR ROLE) binds to that owner. Asserted.
+-- The ALTER DEFAULT PRIVILEGES below (no FOR ROLE) binds to whichever owner
+-- runs this file; under a single Vercel-managed Neon owner that is always the
+-- same role, so no pin is needed.
 
--- Owner-pin assertion (see migrations/OWNER_ROLE.md). Fails loud if this is
--- applied by any role other than the one that applied 0001.
-DO $$
-BEGIN
-  IF to_regclass('public.migration_owner') IS NOT NULL
-     AND EXISTS (SELECT 1 FROM migration_owner)
-     AND current_user <> (SELECT owner_role FROM migration_owner) THEN
-    RAISE EXCEPTION
-      'migration must be applied as pinned owner role "%", but current_user is "%"',
-      (SELECT owner_role FROM migration_owner), current_user;
-  END IF;
-END
-$$;
+-- (owner-pin assertion removed: single Vercel-managed owner, so it guarded
+-- nothing and could not be planned on an empty DB. DB-level immutability is
+-- enforced by the triggers in 0007, which fire for every role.)
 
 -- Capture and print the applying (owner) role for the repo record.
 SELECT current_user AS applying_role;
 
--- 1a. App role — SQL only. No IF NOT EXISTS: if it already exists (e.g. from a
--- prior partial run, or wrongly created in the console) this errors so the
--- operator investigates rather than silently accepting a tainted role.
-CREATE ROLE rehm_app NOLOGIN;
+-- 1a. App role — SQL only. Created idempotently: roles are cluster-global, so a
+-- prior partial run (or a manual attempt) could leave rehm_app already present,
+-- and a bare CREATE ROLE would abort the whole chain. Role separation is not
+-- actually in force here — the app connects as the owner (single Vercel-managed
+-- Neon role, no console to give rehm_app a login), so this role is inert. The
+-- append-only guarantee is enforced by the triggers in 0007, which fire for
+-- every role including the owner. We still create the role and apply its grants
+-- so the schema is ready if a real app credential is ever provisioned.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'rehm_app') THEN
+    CREATE ROLE rehm_app NOLOGIN;
+  END IF;
+END
+$$;
 
 -- 1b. Privileges on existing tables.
 GRANT USAGE ON SCHEMA public TO rehm_app;

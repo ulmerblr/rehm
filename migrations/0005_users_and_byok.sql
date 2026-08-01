@@ -6,18 +6,9 @@
 -- real FKs to users.id. If you recorded any dreams under the old single-subject
 -- id, delete them first (they have no owner user), or these ALTERs will fail.
 
--- Owner-pin assertion (see migrations/OWNER_ROLE.md).
-DO $$
-BEGIN
-  IF to_regclass('public.migration_owner') IS NOT NULL
-     AND EXISTS (SELECT 1 FROM migration_owner)
-     AND current_user <> (SELECT owner_role FROM migration_owner) THEN
-    RAISE EXCEPTION
-      'migration must be applied as pinned owner role "%", but current_user is "%"',
-      (SELECT owner_role FROM migration_owner), current_user;
-  END IF;
-END
-$$;
+-- (owner-pin assertion removed: single Vercel-managed owner, so it guarded
+-- nothing and could not be planned on an empty DB. DB-level immutability is
+-- enforced by the triggers in 0007, which fire for every role.)
 
 SELECT current_user AS applying_role;
 

@@ -3,9 +3,10 @@
 -- Apply this in the Neon SQL editor as the OWNER role (the default Neon role
 -- that owns the database). Run 0001 then 0002 in order, both as the owner.
 --
--- OWNER PIN: the role that applies 0001 is recorded in migration_owner and
--- every migration asserts current_user matches it (see migrations/OWNER_ROLE.md).
--- This keeps ALTER DEFAULT PRIVILEGES (no FOR ROLE, in 0002) bound to one owner.
+-- OWNER: applied by the single Vercel-managed Neon owner role. migration_owner
+-- records that role for the repo record; there is no longer an assertion pinning
+-- later migrations to it (a single owner made the pin moot, and it could not be
+-- planned on an empty DB). Append-only is enforced by the 0007 triggers.
 --
 -- Conventions:
 --   * Primary keys: uuid, default gen_random_uuid() (built-in, Postgres 13+)
@@ -19,19 +20,9 @@
 --   * Every derived row carries NOT NULL model + prompt_version.
 --   * trend_claims.dream_ids non-empty (CHECK) + referentially valid (0002).
 
--- Owner-pin assertion. On the very first apply migration_owner does not exist
--- yet, so this passes; it fails loud on any later apply by a different role.
-DO $$
-BEGIN
-  IF to_regclass('public.migration_owner') IS NOT NULL
-     AND EXISTS (SELECT 1 FROM migration_owner)
-     AND current_user <> (SELECT owner_role FROM migration_owner) THEN
-    RAISE EXCEPTION
-      'migration must be applied as pinned owner role "%", but current_user is "%"',
-      (SELECT owner_role FROM migration_owner), current_user;
-  END IF;
-END
-$$;
+-- (owner-pin assertion removed: single Vercel-managed owner, so it guarded
+-- nothing and could not be planned on an empty DB. DB-level immutability is
+-- enforced by the triggers in 0007, which fire for every role.)
 
 -- Print the applying role for the record.
 SELECT current_user AS applying_role;

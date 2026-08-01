@@ -14,9 +14,11 @@ export const dynamic = "force-dynamic";
 // set, otherwise POSTGRES_URL (the Neon Vercel integration's owner connection).
 // Applies pending migrations/*.sql in order, tracked in schema_migrations,
 // dollar-quote aware (same logic as the Node runner). Gated by the committed
-// signup code. Also reports which role the APP connects as, so you can see
-// whether role separation is actually in effect. Delete this route once 0006
-// has applied.
+// signup code. Reports a per-file result (ok / error) for EVERY pending file it
+// attempts, so a failure shows exactly which file broke and why — not just the
+// first error with no context. Also reports which role the APP connects as, so
+// you can see whether role separation is actually in effect. Delete this route
+// once 0007 has applied.
 async function run(req: NextRequest) {
   const code = new URL(req.url).searchParams.get("code") ?? "";
   if (!timingSafeEqualStr(code, SIGNUP_CODE)) {
@@ -74,19 +76,37 @@ async function run(req: NextRequest) {
       .sort();
     const pending = files.filter((f) => !applied.has(f));
 
-    const appliedNow: string[] = [];
+    // Apply each pending file as its own transaction. Record a result for every
+    // file attempted. Migrations are ordered and interdependent, so on the first
+    // failure we stop — but we still return the full results array (successes
+    // before it, and the failing file with its exact error).
+    const results: Array<{ file: string; ok: boolean; error?: string }> = [];
     for (const file of pending) {
-      const statements = splitStatements(readFileSync(join(dir, file), "utf8"));
-      await sql.transaction(statements.map((s: string) => sql.query(s)));
-      appliedNow.push(file);
+      try {
+        const statements = splitStatements(readFileSync(join(dir, file), "utf8"));
+        await sql.transaction(statements.map((s: string) => sql.query(s)));
+        results.push({ file, ok: true });
+      } catch (err) {
+        results.push({
+          file,
+          ok: false,
+          error: err instanceof Error ? err.message : String(err),
+        });
+        break;
+      }
     }
 
-    return NextResponse.json({
-      ok: true,
-      applied: appliedNow,
-      alreadyApplied: files.filter((f) => applied.has(f)),
-      diagnostics: { ownerVia, ownerRole, appVia, appRole },
-    });
+    const ok = results.every((r) => r.ok);
+    return NextResponse.json(
+      {
+        ok,
+        results,
+        pending: pending.length,
+        alreadyApplied: files.filter((f) => applied.has(f)),
+        diagnostics: { ownerVia, ownerRole, appVia, appRole },
+      },
+      { status: ok ? 200 : 500 }
+    );
   } catch (err) {
     return NextResponse.json(
       {
