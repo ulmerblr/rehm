@@ -1,17 +1,27 @@
 import { requireUserId } from "@/lib/session";
-import { getActiveKeyInfo, getTokenTotal, getUserEmail } from "@/lib/queries";
+import { getActiveKeyInfo, getTokenTotal, getUserEmail, listInvites } from "@/lib/queries";
+import { headers } from "next/headers";
 import KeyForm from "./KeyForm";
 import MigrateButton from "./MigrateButton";
+import Invites from "./Invites";
 
 export const dynamic = "force-dynamic";
 
 export default async function Settings() {
   const userId = await requireUserId();
-  const [key, tokens, email] = await Promise.all([
+  const [key, tokens, email, invites] = await Promise.all([
     getActiveKeyInfo(userId),
     getTokenTotal(userId),
     getUserEmail(userId),
+    listInvites(userId),
   ]);
+
+  // Build the invite link against whatever host this is actually served on, so
+  // a copied link works from a preview deploy as well as production.
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  const origin = host ? `${proto}://${host}` : "";
 
   return (
     <main>
@@ -61,6 +71,13 @@ export default async function Settings() {
         — sign in, open API keys, create one, and put a little credit on the account
         under billing. Calls made here are billed there, to you.
       </p>
+
+      <h2>Invitations</h2>
+      <p className="machine" style={{ marginTop: 0 }}>
+        Each invitation works once. Copy the message, send it, and the link fills
+        the code in for them.
+      </p>
+      <Invites invites={invites} origin={origin} />
 
       <h2>Account</h2>
       <form method="post" action="/api/auth/logout">

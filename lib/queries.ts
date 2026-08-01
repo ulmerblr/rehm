@@ -1,5 +1,6 @@
 import { getSql } from "@/lib/db";
 import type { Addendum } from "@/lib/dreamText";
+import { inviteStatus } from "@/lib/invites";
 
 // Neon driver quirks: DATE -> Date object, integers -> number, bigint (sum,
 // count) -> string, uuid[] -> JS array, nulls -> null. Coerce and guard every
@@ -121,6 +122,37 @@ export async function listDreamDates(
     sequenceNo: toInt(r.sequence_no),
     dreamtOn: toDateStr(r.dreamt_on),
   }));
+}
+
+export type InviteListItem = {
+  id: string;
+  code: string;
+  status: "open" | "used" | "revoked";
+  createdAt: string;
+  usedAt: string | null;
+};
+
+// Invitations this user issued, newest first. Degrades to empty if the table
+// isn't there yet rather than taking Settings down.
+export async function listInvites(userId: string): Promise<InviteListItem[]> {
+  const sql = getSql();
+  try {
+    const rows = (await sql`
+      SELECT id, code, used_at, revoked_at, created_at
+      FROM invites WHERE created_by = ${userId}
+      ORDER BY created_at DESC
+    `) as Array<Record<string, unknown>>;
+    return rows.map((r) => ({
+      id: String(r.id),
+      code: String(r.code),
+      status: inviteStatus(r as { used_at: unknown; revoked_at: unknown }),
+      createdAt: toIso(r.created_at) ?? "",
+      usedAt: toIso(r.used_at),
+    }));
+  } catch (err) {
+    if (!isMissingSchema(err)) throw err;
+    return [];
+  }
 }
 
 export type DashboardStats = {

@@ -3,7 +3,8 @@ import Link from "next/link";
 export const dynamic = "force-dynamic";
 
 const ERRORS: Record<string, string> = {
-  invalid: "Sign-up failed. Check your email, password, and invite code, then try again.",
+  invalid: "Sign-up failed. Check your email and password, then try again.",
+  invite: "That invitation isn't valid — it may have been used already or withdrawn.",
   config: "The site isn't fully configured yet. Please try again shortly.",
   server: "Something went wrong. If this persists, the database may not be set up yet.",
 };
@@ -11,9 +12,9 @@ const ERRORS: Record<string, string> = {
 export default async function Signup({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; invite?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, invite } = await searchParams;
   return (
     <main>
       <div style={{ textAlign: "center", margin: "24px 0 28px" }}>
@@ -33,7 +34,14 @@ export default async function Signup({
       <form method="post" action="/api/auth/signup" className="stack" style={{ marginTop: 18 }}>
         <div>
           <label htmlFor="code">Invite code</label>
-          <input id="code" type="text" name="code" autoComplete="off" required />
+          <input
+            id="code"
+            type="text"
+            name="code"
+            autoComplete="off"
+            defaultValue={invite ?? ""}
+            required
+          />
         </div>
         <div>
           <label htmlFor="email">Email</label>
