@@ -274,8 +274,10 @@ summary {
   padding: 14px 16px;
 }
 
+/* Sized so a 30-character title (the generated cap) fits whole on a phone.
+   The clamp stays as a safety net for long hand-typed titles. */
 .dream-title {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;

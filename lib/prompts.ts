@@ -30,7 +30,16 @@ Write in plain prose. Return only the analysis, with no preamble or headers.`;
 
 // The title prompt. A tiny label for the dream list — not analysis. Kept short
 // and literal so it names the dream's central image, not an interpretation.
-export const TITLE_PROMPT = `Write a very short title for this dream — 3 to 6 words — naming its central image, place, or event. Be concrete and literal; do not interpret, moralize, or add words like "dream" or "nightmare". No quotation marks, no ending punctuation. Reply with the title only, nothing else.`;
+export const TITLE_PROMPT = `Write a very short title for this dream naming its central image, place, or event.
+
+Rules:
+- 2 to 5 words, and NO MORE THAN 30 CHARACTERS total. Shorter is better.
+- Capitalize The First Letter Of Every Word.
+- Be concrete and literal. Do not interpret or moralize.
+- Do not use the words "dream" or "nightmare".
+- No quotation marks and no ending punctuation.
+
+Reply with the title only, nothing else.`;
 
 // The trend prompt. Reads the whole corpus and must cite the dreams each claim
 // rests on. The route drops any claim that comes back without citations.

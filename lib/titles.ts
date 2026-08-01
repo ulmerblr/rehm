@@ -3,14 +3,31 @@ import { TITLE_MODEL } from "@/lib/config";
 import { TITLE_PROMPT } from "@/lib/prompts";
 import { textOf, usageOf } from "@/lib/anthropic";
 
+// Longest title that reliably fits on one line in the phone list without being
+// ellipsed. Enforced here rather than trusted to the prompt.
+const MAX_TITLE_CHARS = 30;
+
+// Capitalize the first letter of every word, leaving the rest of each word
+// alone so acronyms and names keep their casing.
+function toTitleCase(s: string): string {
+  return s.replace(/\S+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1));
+}
+
 // Clean the model's reply into a bare title: single line, no surrounding quotes,
-// no trailing punctuation, hard length cap.
+// no trailing punctuation, Title Cased, and short enough to display whole.
 function clean(raw: string): string {
   let t = String(raw).replace(/\s+/g, " ").trim();
   t = t.replace(/^["'“”‘’]+|["'“”‘’]+$/g, "").trim();
   t = t.replace(/[.!?,;:]+$/g, "").trim();
-  if (t.length > 72) t = t.slice(0, 72).replace(/\s+\S*$/, "").trim();
-  return t;
+
+  // Trim whole words off the end until it fits — never mid-word, and no
+  // ellipsis: a title that fits is the point.
+  while (t.length > MAX_TITLE_CHARS && t.includes(" ")) {
+    t = t.replace(/\s+\S+$/, "");
+  }
+  if (t.length > MAX_TITLE_CHARS) t = t.slice(0, MAX_TITLE_CHARS).trim();
+
+  return toTitleCase(t);
 }
 
 // Best-effort short title for the dream list. Uses the cheap TITLE_MODEL and
