@@ -51,12 +51,12 @@ export default async function Home() {
               <Link href={`/dreams/${d.id}`} className="card-link">
                 <div className="dream-title">{d.title}</div>
                 <div className="dream-snippet">{d.snippet}</div>
-                <div className="seq" style={{ marginTop: 6 }}>
+              </Link>
+              <div className="dream-meta">
+                <span className="seq">
                   Dream {d.sequenceNo}
                   {d.dreamtOn ? ` · ${formatDreamDate(d.dreamtOn)}` : ""}
-                </div>
-              </Link>
-              <div className="row" style={{ marginTop: 10 }}>
+                </span>
                 <AnalyzeInline dreamId={d.id} count={d.analysisCount} />
               </div>
             </div>

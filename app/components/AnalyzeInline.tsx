@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-// Run an analysis straight from the dreams list, so a backlog of unanalyzed
-// dreams can be worked through without opening each one. Costs a call on your
-// key, so it is always an explicit tap — never automatic.
+// Compact analysis status for a dreams-list row: a small dot and a word, with a
+// plain text action when there's nothing yet. Deliberately not a button — a row
+// is for scanning, and a heavy control on every row drowns out the dream.
 export default function AnalyzeInline({
   dreamId,
   count,
@@ -34,22 +34,32 @@ export default function AnalyzeInline({
 
   if (count > 0) {
     return (
-      <span className="tag tag-ok">
-        Analyzed{count > 1 ? ` ×${count}` : ""}
+      <span className="status status-ok">Analyzed{count > 1 ? ` ×${count}` : ""}</span>
+    );
+  }
+
+  if (error) {
+    return (
+      <span className="status status-bad" title={error}>
+        Failed —{" "}
+        <button className="linklike" onClick={run} disabled={busy}>
+          retry
+        </button>
       </span>
     );
   }
 
   return (
-    <span className="row" style={{ gap: 8 }}>
-      <span className="tag">Not analyzed</span>
-      <button className="btn btn-sm" onClick={run} disabled={busy}>
-        {busy ? "Analyzing…" : "Analyze"}
-      </button>
-      {error && (
-        <span className="muted" style={{ fontSize: "0.8rem", color: "var(--danger)" }}>
-          {error}
-        </span>
+    <span className="status status-warn">
+      {busy ? (
+        "Analyzing…"
+      ) : (
+        <>
+          Not analyzed —{" "}
+          <button className="linklike" onClick={run}>
+            analyze
+          </button>
+        </>
       )}
     </span>
   );

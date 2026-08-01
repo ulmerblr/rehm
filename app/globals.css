@@ -9,6 +9,7 @@
   --accent-text: #0b0b0c;
   --danger: #e5674f;
   --ok: #6fce8f;
+  --warn: #d9a441;
 }
 
 * {
@@ -209,10 +210,44 @@ summary {
   margin-right: 6px;
 }
 
-/* A tag marking something done (e.g. an analyzed dream). */
-.tag-ok {
+/* Status line: a small dot and a word. No box, no button — it sits beside the
+   dream's meta without competing with the title. */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.status::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+  flex: none;
+}
+
+.status-ok {
   color: var(--ok);
-  border-color: var(--ok);
+}
+
+.status-warn {
+  color: var(--warn);
+}
+
+.status-bad {
+  color: var(--danger);
+}
+
+/* Meta row under a dream: sequence + date on the left, status on the right. */
+.dream-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
 }
 
 .notice {
