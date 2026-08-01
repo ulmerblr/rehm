@@ -72,9 +72,13 @@ export async function POST(req: NextRequest) {
   let claims: Array<{ claim: string; dreamIds: string[] }> = [];
   let usage: { input: number; output: number };
   try {
+    // max_tokens caps thinking AND the response together, and this model thinks
+    // by default. A trend pass over a growing corpus needs real headroom — if it
+    // runs out mid-JSON the parse below fails with a useless error, so give it
+    // room and check for truncation explicitly.
     const message = await got.client.messages.create({
       model: MODEL,
-      max_tokens: 16000,
+      max_tokens: 32000,
       system: TREND_PROMPT,
       messages: [
         {
@@ -87,6 +91,16 @@ export async function POST(req: NextRequest) {
     if (message.stop_reason === "refusal") {
       return NextResponse.json(
         { error: "refusal", message: "The model declined this request." },
+        { status: 502 }
+      );
+    }
+    if (message.stop_reason === "max_tokens") {
+      return NextResponse.json(
+        {
+          error: "truncated",
+          message:
+            "The trend pass ran out of room before it finished. Your corpus may have grown too large for a single run.",
+        },
         { status: 502 }
       );
     }

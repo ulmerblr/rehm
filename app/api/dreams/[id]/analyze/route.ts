@@ -50,6 +50,12 @@ export async function POST(
         { status: 502 }
       );
     }
+    if (message.stop_reason === "max_tokens") {
+      return NextResponse.json(
+        { error: "truncated", message: "The analysis was cut off. Try running it again." },
+        { status: 502 }
+      );
+    }
     analysis = textOf(message);
     usage = usageOf(message);
     if (!analysis) throw new Error("empty");
