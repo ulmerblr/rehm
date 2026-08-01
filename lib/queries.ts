@@ -242,9 +242,11 @@ export type TrendRun = {
   id: string;
   corpusSize: number;
   scopeLabel: string;
+  dreamNumbers: number[];
   model: string;
   promptVersion: string;
   body: string | null;
+  closing: string | null;
   createdAt: string;
   claims: TrendClaim[];
 };
@@ -254,15 +256,17 @@ export async function listTrendRuns(userId: string): Promise<TrendRun[]> {
   let runRows: Array<Record<string, unknown>>;
   try {
     runRows = (await sql`
-      SELECT id, corpus_size, scope_label, model, prompt_version, body, created_at
+      SELECT id, corpus_size, scope_label, dream_numbers, model, prompt_version,
+             body, closing, created_at
       FROM trend_runs WHERE user_id = ${userId}
       ORDER BY created_at DESC
     `) as Array<Record<string, unknown>>;
   } catch (err) {
     if (!isMissingSchema(err)) throw err;
-    // scope columns not added yet — every existing run covered the whole corpus.
+    // Newer columns not added yet — fall back to what every schema has had.
     runRows = (await sql`
-      SELECT id, corpus_size, NULL AS scope_label, model, prompt_version, body, created_at
+      SELECT id, corpus_size, NULL AS scope_label, NULL AS dream_numbers,
+             model, prompt_version, body, NULL AS closing, created_at
       FROM trend_runs WHERE user_id = ${userId}
       ORDER BY created_at DESC
     `) as Array<Record<string, unknown>>;
@@ -296,9 +300,15 @@ export async function listTrendRuns(userId: string): Promise<TrendRun[]> {
       id: runId,
       corpusSize: toInt(r.corpus_size),
       scopeLabel: r.scope_label == null ? "All dreams" : String(r.scope_label),
+      // Older runs predate recording membership — fall back to the dreams the
+      // run's own claims cite, which is the best evidence available.
+      dreamNumbers: Array.isArray(r.dream_numbers)
+        ? (r.dream_numbers as unknown[]).map((n) => toInt(n))
+        : Array.from(new Set(claims.flatMap((c) => c.citations.map((cit) => cit.number)))),
       model: String(r.model),
       promptVersion: String(r.prompt_version),
       body: r.body == null ? null : String(r.body),
+      closing: r.closing == null ? null : String(r.closing),
       createdAt: toIso(r.created_at) ?? "",
       claims,
     });

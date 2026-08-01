@@ -68,6 +68,37 @@ export function scopeLabel(scope: Scope): string {
   }
 }
 
+// Render the dreams a run read, e.g. [1,2] -> "1 · 2" and [1,2,3,4,7] ->
+// "1–4 · 7". Consecutive stretches collapse so a whole-corpus run stays short.
+export function formatDreamNumbers(nums: number[]): string {
+  const sorted = [...new Set(nums)].sort((a, b) => a - b);
+  if (sorted.length === 0) return "";
+
+  const parts: string[] = [];
+  let start = sorted[0];
+  let prev = sorted[0];
+
+  for (let i = 1; i <= sorted.length; i++) {
+    const n = sorted[i];
+    if (n === prev + 1) {
+      prev = n;
+      continue;
+    }
+    // A run of 3+ collapses to a range; a pair stays as two numbers.
+    parts.push(
+      start === prev ? `${start}` : prev === start + 1 ? `${start} · ${prev}` : `${start}–${prev}`
+    );
+    start = n;
+    prev = n;
+  }
+  return parts.join(" · ");
+}
+
+// An ISO timestamp as a plain date, e.g. "Aug 1, 2026".
+export function formatStamp(iso: string): string {
+  return formatDate(iso.slice(0, 10));
+}
+
 // Which dreams fall in scope. Shared by the server (to build the corpus) and
 // the client (to preview the count before spending anything), so the number the
 // user sees is the number the run actually uses.

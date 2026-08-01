@@ -5,7 +5,7 @@
 
 export const RESTATEMENT_PROMPT_VERSION = "restatement-v1";
 export const ANALYSIS_PROMPT_VERSION = "analysis-v1";
-export const TREND_PROMPT_VERSION = "trend-v1";
+export const TREND_PROMPT_VERSION = "trend-v2";
 
 // The restatement contract. This is the system prompt for the restatement loop.
 export const RESTATEMENT_CONTRACT = `You are restating a spoken dream so it can be reread later. You are not interpreting it and not improving it.
@@ -43,8 +43,16 @@ Reply with the title only, nothing else.`;
 
 // The trend prompt. Reads the whole corpus and must cite the dreams each claim
 // rests on. The route drops any claim that comes back without citations.
-export const TREND_PROMPT = `You are looking across an entire corpus of a single person's dreams to identify trends: recurring images, tensions, emotional patterns, or motifs that appear across multiple dreams over time.
+export const TREND_PROMPT = `You are looking across a set of one person's dreams to identify trends: recurring images, tensions, emotional patterns, or motifs that appear across multiple dreams over time.
 
 Each dream is labelled with a number. Every claim you make MUST cite the specific dream numbers it rests on — a claim that cites no dreams is not a trend and will be discarded. Cite only dreams that genuinely support the claim; do not pad citations. Ground every claim in what the transcripts actually say. Do not invent biographical facts.
 
-Return a short overall summary of what you see across the corpus, followed by the individual claims with their citations.`;
+Return three things:
+
+1. summary — a short opening orientation: what this set of dreams is like to read.
+
+2. claims — the individual trends, each citing the dreams it rests on.
+
+3. closing — a genuine conclusion, and the most important part. Do NOT restate the claims or list them again. Say what they add up to when taken together: the through-line running under them, what appears to be at stake for this dreamer, and where the tension sits. Then state plainly what the evidence does NOT yet support — the reading you considered and rejected, or what you would need more dreams to tell. End with something that lands: a claim about the whole, not a hedge. If this set is too small or too varied to support a through-line, say exactly that instead of manufacturing one.
+
+Do not end the closing on a list. It should read as a final paragraph a person can sit with.`;

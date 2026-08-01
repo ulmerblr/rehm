@@ -20,6 +20,7 @@ const SCHEMA = {
   additionalProperties: false,
   properties: {
     summary: { type: "string" },
+    closing: { type: "string" },
     claims: {
       type: "array",
       items: {
@@ -33,7 +34,7 @@ const SCHEMA = {
       },
     },
   },
-  required: ["summary", "claims"],
+  required: ["summary", "claims", "closing"],
 } as const;
 
 // One pass over a chosen slice of the session user's corpus — everything, the
@@ -104,6 +105,7 @@ export async function POST(req: NextRequest) {
   }
 
   let summary = "";
+  let closing = "";
   let claims: Array<{ claim: string; dreamIds: string[] }> = [];
   let usage: { input: number; output: number };
   try {
@@ -146,9 +148,11 @@ export async function POST(req: NextRequest) {
     usage = usageOf(message);
     const parsed = JSON.parse(textOf(message)) as {
       summary?: string;
+      closing?: string;
       claims?: Array<{ claim?: string; dream_numbers?: number[] }>;
     };
     summary = typeof parsed.summary === "string" ? parsed.summary : "";
+    closing = typeof parsed.closing === "string" ? parsed.closing : "";
     claims = (parsed.claims ?? [])
       .map((c) => ({
         claim: (c.claim ?? "").trim(),
@@ -171,11 +175,13 @@ export async function POST(req: NextRequest) {
 
   const [run] = (await sql`
     INSERT INTO trend_runs (
-      user_id, corpus_size, model, prompt_version, body, input_tokens, output_tokens,
+      user_id, corpus_size, model, prompt_version, body, closing, dream_numbers,
+      input_tokens, output_tokens,
       scope_kind, scope_label, scope_last_n, scope_from, scope_to
     )
     VALUES (
       ${userId}, ${corpusSize}, ${MODEL}, ${TREND_PROMPT_VERSION}, ${summary},
+      ${closing}, ${scoped.map((d) => d.sequenceNo)}::int[],
       ${usage.input}, ${usage.output},
       ${scope.kind}, ${label},
       ${scope.kind === "last_n" ? scope.lastN : null},

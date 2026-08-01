@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUserId } from "@/lib/session";
 import { listTrendRuns, listDreamDates, type TrendRun } from "@/lib/queries";
+import { formatDreamNumbers, formatStamp } from "@/lib/scope";
 import ExportButton from "@/app/components/ExportButton";
 import Header from "@/app/components/Header";
 import TrendRunner from "./TrendRunner";
@@ -35,43 +36,61 @@ export default async function Trends() {
       {runs.length === 0 ? (
         <p className="muted">No trend runs yet.</p>
       ) : (
-        runs.map((run) => (
-          <div key={run.id} className="card">
-            <div style={{ fontWeight: 600, marginBottom: 6 }}>{run.scopeLabel}</div>
-            <div>
-              <span className="tag">{run.corpusSize} dreams read</span>
-              <span className="tag">model: {run.model}</span>
-              <span className="tag">prompt: {run.promptVersion}</span>
-            </div>
-            <div className="seq">{run.createdAt}</div>
-            {run.body && <p style={{ whiteSpace: "pre-wrap" }}>{run.body}</p>}
-
-            <div className="stack" style={{ marginTop: 8 }}>
-              {run.claims.length === 0 ? (
-                <p className="muted">No cited claims in this run.</p>
-              ) : (
-                run.claims.map((c, i) => (
-                  <div key={i}>
-                    <div>{c.claim}</div>
-                    <div className="seq" style={{ marginTop: 4 }}>
-                      dreams:{" "}
-                      {c.citations.map((cit, j) => (
-                        <span key={cit.id}>
-                          {j > 0 ? ", " : ""}
-                          <Link href={`/dreams/${cit.id}`}>#{cit.number}</Link>
-                        </span>
-                      ))}
-                    </div>
+        <div className="stack">
+          {runs.map((run) => (
+            <details key={run.id} className="run">
+              <summary>
+                <div>
+                  <div className="run-dreams">
+                    {run.dreamNumbers.length > 0
+                      ? `Dream${run.dreamNumbers.length === 1 ? "" : "s"} ${formatDreamNumbers(run.dreamNumbers)}`
+                      : run.scopeLabel}
                   </div>
-                ))
-              )}
-            </div>
+                  <div className="seq">{formatStamp(run.createdAt)}</div>
+                </div>
+              </summary>
 
-            <div style={{ marginTop: 14 }}>
-              <ExportButton text={buildTrendExport(run)} label="Copy run as text" />
-            </div>
-          </div>
-        ))
+              <div className="run-body">
+                {run.body && <p style={{ whiteSpace: "pre-wrap", marginTop: 0 }}>{run.body}</p>}
+
+                <div className="stack" style={{ marginTop: 14 }}>
+                  {run.claims.length === 0 ? (
+                    <p className="muted">No cited claims in this run.</p>
+                  ) : (
+                    run.claims.map((c, i) => (
+                      <div key={i}>
+                        <div>{c.claim}</div>
+                        <div className="seq" style={{ marginTop: 4 }}>
+                          dreams:{" "}
+                          {c.citations.map((cit, j) => (
+                            <span key={cit.id}>
+                              {j > 0 ? ", " : ""}
+                              <Link href={`/dreams/${cit.id}`}>#{cit.number}</Link>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {run.closing && (
+                  <div className="closing">
+                    <div className="seq" style={{ marginBottom: 6 }}>In sum</div>
+                    <p style={{ whiteSpace: "pre-wrap", margin: 0 }}>{run.closing}</p>
+                  </div>
+                )}
+
+                <div className="seq" style={{ marginTop: 16 }}>
+                  {run.scopeLabel} · {run.corpusSize} read · {run.model} · {run.promptVersion}
+                </div>
+                <div style={{ marginTop: 12 }}>
+                  <ExportButton text={buildTrendExport(run)} label="Copy run as text" />
+                </div>
+              </div>
+            </details>
+          ))}
+        </div>
       )}
     </main>
   );
@@ -91,6 +110,11 @@ function buildTrendExport(run: TrendRun): string {
   for (const c of run.claims) {
     const cites = c.citations.map((cit) => `#${cit.number}`).join(", ");
     parts.push(`- ${c.claim}  [dreams: ${cites}]`);
+  }
+  if (run.closing) {
+    parts.push("");
+    parts.push("IN SUM");
+    parts.push(run.closing);
   }
   return parts.join("\n");
 }

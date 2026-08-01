@@ -294,6 +294,62 @@ summary {
   white-space: nowrap;
 }
 
+/* Collapsed trend run: dream numbers + date, expanding to the full run. */
+.run {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0 16px;
+}
+
+.run > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  font-weight: 400;
+  list-style: none;
+}
+
+.run > summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Chevron that rotates when the run is open. */
+.run > summary::after {
+  content: "›";
+  color: var(--muted);
+  font-size: 1.4rem;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+
+.run[open] > summary::after {
+  transform: rotate(90deg);
+}
+
+.run-dreams {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.run-body {
+  padding-bottom: 16px;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+}
+
+/* The closing synthesis — set apart so the run ends on something, rather than
+   trailing off after the last claim. */
+.closing {
+  margin-top: 18px;
+  padding: 14px 16px;
+  background: var(--surface-2);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 12px 12px 0;
+}
+
 /* Segmented control — mutually exclusive choices in one row. */
 .segmented {
   display: flex;
