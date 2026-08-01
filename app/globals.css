@@ -401,6 +401,22 @@ summary {
   border-radius: 0 12px 12px 0;
 }
 
+/* Batch progress for a queued trend pass. */
+.progress-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
 /* Segmented control — mutually exclusive choices in one row. */
 .segmented {
   display: flex;

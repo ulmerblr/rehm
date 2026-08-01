@@ -33,6 +33,9 @@ export default function TrendRunner({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detail, setDetail] = useState<string | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [progress, setProgress] = useState<{ completed: number; total: number } | null>(null);
+  const [stage, setStage] = useState<"reading" | "synthesis">("reading");
 
   const scope: Scope = useMemo(() => {
     if (kind === "last_n") return { kind: "last_n", lastN };
@@ -51,33 +54,73 @@ export default function TrendRunner({
     setTo(isoToday());
   }
 
+  // Drive a queued pass to completion, one step per request. Each step reads a
+  // few dreams (or, at the end, synthesizes), so no single request can outlive
+  // the server's time limit however large the corpus gets.
+  async function drive(jobId: string) {
+    // Generous but finite: enough steps for a very large corpus, low enough
+    // that a server bug can't spin here forever.
+    for (let i = 0; i < 500; i++) {
+      const res = await fetch(`/api/trends/jobs/${jobId}/step`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        if (res.status === 504 || res.status === 502) {
+          setDetail(`A step hit the server's time limit (${res.status}).`);
+          throw new Error("A step took too long. Press Resume to pick up where it stopped.");
+        }
+        if (data?.detail) setDetail(String(data.detail));
+        throw new Error(data?.message || data?.error || `failed (${res.status})`);
+      }
+
+      if (typeof data.completed === "number" && typeof data.total === "number") {
+        setProgress({ completed: data.completed, total: data.total });
+      }
+      setStage(data.stage === "synthesis" ? "synthesis" : "reading");
+      if (data.done) return;
+    }
+    throw new Error("The pass did not finish. Press Resume to continue.");
+  }
+
   async function run() {
     setError(null);
     setDetail(null);
+    setProgress(null);
+    setStage("reading");
     setBusy(true);
     try {
-      const res = await fetch("/api/trends/run", {
+      const res = await fetch("/api/trends/jobs", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ scope, source }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        // A gateway timeout is produced by the platform, not the route, so it
-        // arrives with no body — say what it means and what to do about it.
-        if (res.status === 504 || res.status === 502) {
-          setDetail(
-            `The request hit the server's time limit before the pass finished (${res.status}).`
-          );
-          throw new Error(
-            inScope.length > 1
-              ? `Reading ${inScope.length} dreams took too long. Try a smaller scope — say the last ${Math.max(2, Math.floor(inScope.length / 2))}.`
-              : "That took too long to finish."
-          );
-        }
         if (data?.detail) setDetail(String(data.detail));
         throw new Error(data?.message || data?.error || `failed (${res.status})`);
       }
+      setJobId(String(data.jobId));
+      setProgress({ completed: 0, total: Number(data.totalBatches) || 1 });
+      await drive(String(data.jobId));
+      setJobId(null);
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Continue an interrupted pass. Batches already read are kept, so this costs
+  // only the work that's actually left.
+  async function resume() {
+    if (!jobId) return;
+    setError(null);
+    setDetail(null);
+    setBusy(true);
+    try {
+      await drive(jobId);
+      setJobId(null);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "failed");
@@ -211,14 +254,42 @@ export default function TrendRunner({
           : `${scopeLabel(scope)} — ${inScope.length} dream${inScope.length === 1 ? "" : "s"} in this pass.`}
       </p>
 
-      <button
-        className="btn btn-primary btn-block btn-lg"
-        style={{ marginTop: 12 }}
-        onClick={run}
-        disabled={!canRun}
-      >
-        {busy ? "Running a trend pass…" : "Run a trend pass"}
-      </button>
+      {busy && progress && (
+        <div style={{ marginTop: 12 }}>
+          <div className="progress-track">
+            <div
+              className="progress-fill"
+              style={{
+                width: `${Math.round((progress.completed / Math.max(progress.total, 1)) * 100)}%`,
+              }}
+            />
+          </div>
+          <p className="muted" style={{ margin: "8px 0 0", fontSize: "0.9rem" }}>
+            {stage === "synthesis"
+              ? "Read everything. Drawing the trends together…"
+              : `Reading — batch ${Math.min(progress.completed + 1, progress.total)} of ${progress.total}.`}
+          </p>
+        </div>
+      )}
+
+      {jobId && !busy ? (
+        <button
+          className="btn btn-primary btn-block btn-lg"
+          style={{ marginTop: 12 }}
+          onClick={resume}
+        >
+          Resume this pass
+        </button>
+      ) : (
+        <button
+          className="btn btn-primary btn-block btn-lg"
+          style={{ marginTop: 12 }}
+          onClick={run}
+          disabled={!canRun}
+        >
+          {busy ? "Running…" : "Run a trend pass"}
+        </button>
+      )}
       {error && (
         <div className="notice" style={{ marginTop: 12 }}>
           <div>{error}</div>

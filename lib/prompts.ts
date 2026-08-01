@@ -5,7 +5,7 @@
 
 export const RESTATEMENT_PROMPT_VERSION = "restatement-v1";
 export const ANALYSIS_PROMPT_VERSION = "analysis-v1";
-export const TREND_PROMPT_VERSION = "trend-v2";
+export const TREND_PROMPT_VERSION = "trend-v3";
 
 // The restatement contract. This is the system prompt for the restatement loop.
 export const RESTATEMENT_CONTRACT = `You are restating a spoken dream so it can be reread later. You are not interpreting it and not improving it.
@@ -41,8 +41,35 @@ Rules:
 
 Reply with the title only, nothing else.`;
 
-// The trend prompt. Reads the whole corpus and must cite the dreams each claim
-// rests on. The route drops any claim that comes back without citations.
+// A trend pass runs in two stages so it fits inside a serverless request and
+// scales to any corpus size: many BATCH steps read a few dreams each, then one
+// SYNTHESIS step turns their observations into the final claims.
+//
+// The batch step deliberately does NOT conclude anything — concluding from a
+// slice of the corpus is exactly the error the whole design is trying to avoid.
+export const TREND_BATCH_PROMPT = `You are reading part of a larger set of one person's dreams. This is a first pass over one batch, not the whole set — do NOT draw conclusions or announce trends. Another step will do that once every batch has been read.
+
+Your job is to notice and record, in this batch only: recurring or striking images, places, people, actions; emotional tones; tensions or contradictions; anything a reader looking for patterns across the whole set would want flagged.
+
+Each dream is labelled with a number. Every observation MUST cite the dream numbers it comes from. Stay strictly grounded in what the transcripts say — do not interpret, do not speculate about the dreamer's life, and do not invent biographical facts. Note things that occur only once if they are distinctive; a single vivid detail may turn out to matter later.
+
+Return the observations only.`;
+
+export const TREND_SYNTHESIS_PROMPT = `You are completing a trend analysis over one person's dreams. The dreams were read in batches, and you are given the observations recorded from every batch, each citing the dream numbers it came from. Work only from these observations and their citations.
+
+Return three things:
+
+1. summary — a short opening orientation: what this set of dreams is like to read.
+
+2. claims — the trends themselves. A trend is something that holds across the set, so prefer claims supported by more than one dream, and merge observations from different batches that are really the same pattern. Every claim MUST cite the specific dream numbers it rests on — a claim citing no dreams is not a trend and will be discarded. Cite only dreams that genuinely support the claim; do not pad citations. Never cite a dream number that does not appear in the observations you were given.
+
+3. closing — a genuine conclusion, and the most important part. Do NOT restate the claims or list them again. Say what they add up to when taken together: the through-line running under them, what appears to be at stake for this dreamer, and where the tension sits. Then state plainly what the evidence does NOT yet support — the reading you considered and rejected, or what you would need more dreams to tell. End with something that lands: a claim about the whole, not a hedge. If this set is too small or too varied to support a through-line, say exactly that instead of manufacturing one.
+
+Do not end the closing on a list. It should read as a final paragraph a person can sit with.`;
+
+// The single-pass trend prompt, kept for reference. Reads the whole corpus and
+// must cite the dreams each claim rests on; claims without citations are
+// dropped.
 export const TREND_PROMPT = `You are looking across a set of one person's dreams to identify trends: recurring images, tensions, emotional patterns, or motifs that appear across multiple dreams over time.
 
 Each dream is labelled with a number. Every claim you make MUST cite the specific dream numbers it rests on — a claim that cites no dreams is not a trend and will be discarded. Cite only dreams that genuinely support the claim; do not pad citations. Ground every claim in what the transcripts actually say. Do not invent biographical facts.
