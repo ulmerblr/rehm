@@ -236,6 +236,8 @@ export type Dict = {
   used: (when: string) => string;
   revoked: string;
   revoke: string;
+  deleteInvite: string;
+  deleteInviteConfirm: string;
 
   // First-run setup
   setupTitle: string;
@@ -496,6 +498,8 @@ const en: Dict = {
   used: (when) => `used ${when}`,
   revoked: "revoked",
   revoke: "revoke",
+  deleteInvite: "delete",
+  deleteInviteConfirm: "Remove this invitation from the list?",
 
   setupTitle: "Two things before you start",
   setupLead:
@@ -764,6 +768,8 @@ const es: Dict = {
   used: (when) => `usada ${when}`,
   revoked: "revocada",
   revoke: "revocar",
+  deleteInvite: "borrar",
+  deleteInviteConfirm: "¿Quitar esta invitación de la lista?",
 
   setupTitle: "Dos cosas antes de empezar",
   setupLead:

@@ -22,6 +22,7 @@ export default function Invites({ invites, origin, lang }: { invites: InviteRow[
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<string | null>(null);
 
   const linkFor = (code: string) => `${origin}/signup?invite=${encodeURIComponent(code)}`;
 
@@ -61,6 +62,24 @@ export default function Invites({ invites, origin, lang }: { invites: InviteRow[
     setError(null);
     setBusy(true);
     try {
+      const res = await fetch(`/api/invites/${id}/revoke`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.message || data?.error || `failed (${res.status})`);
+      router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Removing the row outright. Revoking cancels a code that may still be in
+  // someone's messages; this is the cleanup afterwards, and without it a
+  // revoked invitation stays on the list forever with nothing left to do.
+  async function remove(id: string) {
+    setError(null);
+    setBusy(true);
+    try {
       const res = await fetch(`/api/invites/${id}`, { method: "DELETE" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.message || data?.error || `failed (${res.status})`);
@@ -69,6 +88,7 @@ export default function Invites({ invites, origin, lang }: { invites: InviteRow[
       setError(e instanceof Error ? e.message : "failed");
     } finally {
       setBusy(false);
+      setConfirming(null);
     }
   }
 
@@ -94,24 +114,63 @@ export default function Invites({ invites, origin, lang }: { invites: InviteRow[
                 </span>
               </div>
 
-              {inv.status === "open" && (
-                <div className="row" style={{ gap: 10, marginTop: 12 }}>
+              <div className="row" style={{ gap: 10, marginTop: 12 }}>
+                {inv.status === "open" && (
+                  <>
+                    <button
+                      className="btn btn-sm"
+                      onClick={() => copy(`msg-${inv.id}`, messageFor(inv.code))}
+                    >
+                      {copied === `msg-${inv.id}` ? t.copied : t.copyMessage}
+                    </button>
+                    <button
+                      className="btn btn-sm"
+                      onClick={() => copy(`link-${inv.id}`, linkFor(inv.code))}
+                    >
+                      {copied === `link-${inv.id}` ? t.copied : t.copyLink}
+                    </button>
+                    <button
+                      className="linklike stamp"
+                      onClick={() => revoke(inv.id)}
+                      disabled={busy}
+                    >
+                      {t.revoke}
+                    </button>
+                  </>
+                )}
+
+                {confirming === inv.id ? (
+                  <>
+                    <button
+                      className="btn btn-danger btn-sm"
+                      onClick={() => remove(inv.id)}
+                      disabled={busy}
+                    >
+                      {busy ? t.deleting : t.confirmDelete}
+                    </button>
+                    <button
+                      className="linklike stamp"
+                      onClick={() => setConfirming(null)}
+                      disabled={busy}
+                    >
+                      {t.cancel}
+                    </button>
+                  </>
+                ) : (
                   <button
-                    className="btn btn-sm"
-                    onClick={() => copy(`msg-${inv.id}`, messageFor(inv.code))}
+                    className="linklike stamp"
+                    onClick={() => setConfirming(inv.id)}
+                    disabled={busy}
                   >
-                    {copied === `msg-${inv.id}` ? t.copied : t.copyMessage}
+                    {t.deleteInvite}
                   </button>
-                  <button
-                    className="btn btn-sm"
-                    onClick={() => copy(`link-${inv.id}`, linkFor(inv.code))}
-                  >
-                    {copied === `link-${inv.id}` ? t.copied : t.copyLink}
-                  </button>
-                  <button className="linklike stamp" onClick={() => revoke(inv.id)} disabled={busy}>
-                    {t.revoke}
-                  </button>
-                </div>
+                )}
+              </div>
+
+              {confirming === inv.id && (
+                <p className="machine" style={{ marginTop: 8 }}>
+                  {t.deleteInviteConfirm}
+                </p>
               )}
             </div>
           ))}

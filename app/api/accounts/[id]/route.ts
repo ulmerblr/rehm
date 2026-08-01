@@ -100,11 +100,16 @@ export async function DELETE(
       sql`DELETE FROM usage_events WHERE user_id = ${targetId}`,
       sql`DELETE FROM user_api_keys WHERE user_id = ${targetId}`,
 
-      // Invitations this account issued go with it. The one it redeemed is
-      // released instead: the signup it paid for no longer exists, so holding
-      // the code spent would quietly cost an invitation for nothing.
-      sql`DELETE FROM invites WHERE created_by = ${targetId}`,
-      sql`UPDATE invites SET used_at = NULL, used_by = NULL WHERE used_by = ${targetId}`,
+      // Invitations, both the ones this account issued and the one it redeemed.
+      //
+      // The redeemed one is DELETED, not released back to unused. Releasing it
+      // was the first instinct — the signup it paid for is gone, so why keep
+      // the code spent — but it means a code already sent out in a text message
+      // becomes live again, and anyone still holding that message can sign up
+      // with it. Deleting closes that door, and issuing a fresh invitation is
+      // free. It also stops a phantom "unused" row appearing in the list with
+      // no explanation of where it came from.
+      sql`DELETE FROM invites WHERE created_by = ${targetId} OR used_by = ${targetId}`,
 
       sql`DELETE FROM users WHERE id = ${targetId}`,
     ]);
