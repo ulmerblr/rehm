@@ -16,7 +16,7 @@ export default async function Login({
     <main>
       <div style={{ textAlign: "center", margin: "24px 0 28px" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/lockup.png" alt="rehm" className="lockup lockup-lg" />
+        <img src="/lockup.png" alt="rehmchi" className="lockup lockup-lg" />
       </div>
       <p className="machine">Sign in.</p>
       {error && <p className="notice">{message}</p>}
@@ -35,7 +35,7 @@ export default async function Login({
       </form>
 
       <p className="muted" style={{ marginTop: 18, fontSize: "0.95rem" }}>
-        There is no password reset. rehm has no email layer and no operator recovery path, so a
+        There is no password reset. rehmchi has no email layer and no operator recovery path, so a
         forgotten password means the account — and its dreams — are gone for good. Keep your
         password somewhere safe.
       </p>

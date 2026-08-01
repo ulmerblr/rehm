@@ -4,8 +4,8 @@ import type { MetadataRoute } from "next";
 // springboard, opening without browser chrome, on the ink ground.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "rehm",
-    short_name: "rehm",
+    name: "rehmchi",
+    short_name: "rehmchi",
     description: "A longitudinal dream study.",
     start_url: "/",
     display: "standalone",

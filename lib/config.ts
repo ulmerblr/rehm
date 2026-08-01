@@ -12,7 +12,9 @@ export const TITLE_MODEL = "claude-haiku-4-5-20251001";
 // only the display copy — so this model choice cannot affect the corpus.
 export const TRANSLATION_MODEL = "claude-haiku-4-5-20251001";
 
-// Capture surface for dreams recorded in the app (spoken into rehm).
+// Capture surface, stored on every dream row. Deliberately NOT renamed with the
+// brand: dreams are immutable, so changing it would split the field — old rows
+// saying one thing and new ones another — for a word nobody reads.
 export const CAPTURE_METHOD = "voice-rehm";
 
 // Invite code for signup. Deliberately a committed, non-secret throwaway word

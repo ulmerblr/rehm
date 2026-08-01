@@ -27,7 +27,7 @@ export default function Invites({ invites, origin, lang }: { invites: InviteRow[
   const linkFor = (code: string) => `${origin}/signup?invite=${encodeURIComponent(code)}`;
 
   const messageFor = (code: string) =>
-    `You're invited to rehm — a private dream log.\n\n${linkFor(code)}\n\nInvite code: ${code}\n\nYou'll need your own Anthropic API key; anything it generates is billed to you.`;
+    `You're invited to rehmchi — a private dream log.\n\n${linkFor(code)}\n\nInvite code: ${code}\n\nYou'll need your own Anthropic API key; anything it generates is billed to you.`;
 
   async function copy(kind: string, text: string) {
     try {

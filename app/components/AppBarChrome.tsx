@@ -26,9 +26,9 @@ export default function AppBarChrome({
   return (
     <header className="app-bar">
       <div className="app-bar-inner">
-        <Link href="/" aria-label="rehm — home" className="lockup-link">
+        <Link href="/" aria-label="rehmchi — home" className="lockup-link">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/lockup.png" alt="rehm" className="lockup" />
+          <img src="/lockup.png" alt="rehmchi" className="lockup" />
         </Link>
         <div className="app-bar-right">
           {viewLang && <LangToggle current={viewLang} />}

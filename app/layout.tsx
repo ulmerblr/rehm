@@ -33,10 +33,10 @@ import AppBar from "@/app/components/AppBar";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://rehm.xyzroot.com"),
-  title: "rehm",
+  title: "rehmchi",
   description: "A longitudinal dream study.",
   // Home-screen shortcut opens standalone, titled with the mark alone.
-  appleWebApp: { capable: true, title: "rehm", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "rehmchi", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {

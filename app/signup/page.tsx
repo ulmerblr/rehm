@@ -19,7 +19,7 @@ export default async function Signup({
     <main>
       <div style={{ textAlign: "center", margin: "24px 0 28px" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/lockup.png" alt="rehm" className="lockup lockup-lg" />
+        <img src="/lockup.png" alt="rehmchi" className="lockup lockup-lg" />
       </div>
       <p className="machine">Create an account. Invite only.</p>
 
