@@ -77,6 +77,43 @@ credential. See `migrations/OWNER_ROLE.md` for the owner-pin mechanism.
   languages, the translation wiring, and every colour token against the ground
   it is read on. Each of these guards something that has already broken once.
 
+## Clickable citations
+
+Quoted passages in an analysis, and the evidence under a trend claim, open the
+raw transcript at the passage in a modal. Nothing navigates: the point of
+checking a citation is not losing the argument you were reading.
+
+**Offsets are the server's, never the model's.** `lib/spans.ts` searches the
+transcript for the quote — exact, then a normalized pass that unifies curly
+punctuation, collapses whitespace and ignores case, then a retry with trailing
+punctuation stripped (an analysis routinely pulls the sentence's comma inside
+its closing quote). If none of those find it, the quote is kept with no offsets
+and `match_kind = 'unresolved'`. A position is never invented, a quote is never
+dropped, and an unresolved quotation renders as ordinary prose with no marker —
+silent failure is correct here.
+
+**Analyses are resolved at render, not stored.** The two strings needed are
+already on file, so every analysis ever written is clickable with no re-run, and
+improving the matcher improves the old ones too. The analysis prompt is
+unchanged — it already quotes verbatim and well.
+
+**Trend claims need the data** (`trend-v4`, migration 0024). Which fragment of a
+claim belongs to which of the four dreams it cites is knowable only while the
+transcripts are open, so the batch pass lifts verbatim quotes into a pool while
+it reads, and the synthesis pass cites them **by id**. The synthesis step works
+from batch observations and never sees a transcript, so asking it to quote would
+be asking it to reproduce text it was never shown; citing by id makes an
+invented quote structurally impossible. Each run reports how its spans landed —
+exact, normalized, unresolved — which is the number that says whether the model
+is quoting or inventing.
+
+**The reverse direction.** A transcript passage that trend claims rest on gets a
+rule in the left gutter; tapping it says what was built on those words.
+
+**The wall is unchanged.** Spans are evidence pointers, read at render time
+only. Nothing here feeds the restatement, the blind analysis, or any future
+trend pass, and `npm run check` asserts that no prompt path reads the table.
+
 ## Auth, scoping, and bring-your-own-key
 
 Native email + password auth (bcrypt, cost 12; passwords are never recoverable).

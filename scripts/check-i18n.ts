@@ -202,6 +202,8 @@ const RAW_RENDERS: Array<[string, string]> = [
   ["app/dreams/[id]/page.tsx", "dream.rawTranscript"],
   ["app/dreams/page.tsx", "d.title"],
   ["app/dreams/page.tsx", "d.snippet"],
+  // The margin panel lists claims: generated text, on a page that translates.
+  ["app/components/CitedTranscript.tsx", "c.claim"],
 ];
 const rawFound = RAW_RENDERS.filter(([f, field]) => {
   const escaped = field.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

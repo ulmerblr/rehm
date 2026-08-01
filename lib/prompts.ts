@@ -5,7 +5,15 @@
 
 export const RESTATEMENT_PROMPT_VERSION = "restatement-v1";
 export const ANALYSIS_PROMPT_VERSION = "analysis-v1";
-export const TREND_PROMPT_VERSION = "trend-v3";
+// v4 adds structured evidence: the batch pass lifts verbatim quotes while it
+// has the transcripts open, and synthesis attaches them to claims by id. The
+// prose the model writes is unchanged — v3's claims read well and the request
+// was explicitly to keep writing them the same way. What changed is that the
+// evidence now also comes back as data, which is what makes it clickable.
+//
+// (The spec said "bump to trend-v2"; v2 and v3 already shipped, so this is v4.
+// v1–v3 runs stay listed and readable with their own stamp, as always.)
+export const TREND_PROMPT_VERSION = "trend-v4";
 
 // The restatement contract. This is the system prompt for the restatement loop.
 export const RESTATEMENT_CONTRACT = `You are restating a spoken dream so it can be reread later. You are not interpreting it and not improving it.
@@ -49,19 +57,36 @@ Reply with the title only, nothing else.`;
 // slice of the corpus is exactly the error the whole design is trying to avoid.
 export const TREND_BATCH_PROMPT = `You are reading part of a larger set of one person's dreams. This is a first pass over one batch, not the whole set — do NOT draw conclusions or announce trends. Another step will do that once every batch has been read.
 
-Your job is to notice and record, in this batch only: recurring or striking images, places, people, actions; emotional tones; tensions or contradictions; anything a reader looking for patterns across the whole set would want flagged.
+Return two things.
 
-Each dream is labelled with a number. Every observation MUST cite the dream numbers it comes from. Stay strictly grounded in what the transcripts say — do not interpret, do not speculate about the dreamer's life, and do not invent biographical facts. Note things that occur only once if they are distinctive; a single vivid detail may turn out to matter later.
+1. observations — what you notice in this batch only: recurring or striking images, places, people, actions; emotional tones; tensions or contradictions; anything a reader looking for patterns across the whole set would want flagged. Each dream is labelled with a number, and every observation MUST cite the dream numbers it comes from. Stay strictly grounded in what the transcripts say — do not interpret, do not speculate about the dreamer's life, and do not invent biographical facts. Note things that occur only once if they are distinctive; a single vivid detail may turn out to matter later.
 
-Return the observations only.`;
+2. quotes — the dreamer's own words, copied out, for a later step to use as evidence. This is transcription, not writing. Copy CHARACTER FOR CHARACTER from the spoken transcript of a dream. Never quote from a block marked [Remembered afterwards] or [Earlier interpretation] — the first is not part of the transcript and the second is not the dreamer speaking at all.
+- No paraphrase. No cleanup. No ellipsis. No fixed grammar or punctuation.
+- Filler stays. If the words are "um, I guess probably", that is the quote.
+- Self-corrections stay. If he says "a truck, no a boat", that is the quote.
+- Roughly 5 to 25 words each. A fragment is fine if the fragment is what is striking.
+- Give each quote the dream number it came from.
+- Lift generously: 5 to 15 per dream, covering anything a later step might want to point at — the vivid images, the emotional beats, the contradictions, the odd details. A later step can only cite what you copy here, so a passage you skip cannot be used as evidence at all.
+- Do not copy the same passage twice.
+If a dream in this batch is too short or too flat to quote from, return no quotes for it rather than inventing one.`;
 
-export const TREND_SYNTHESIS_PROMPT = `You are completing a trend analysis over one person's dreams. The dreams were read in batches, and you are given the observations recorded from every batch, each citing the dream numbers it came from. Work only from these observations and their citations.
+export const TREND_SYNTHESIS_PROMPT = `You are completing a trend analysis over one person's dreams. The dreams were read in batches, and you are given the observations recorded from every batch, each citing the dream numbers it came from. You are also given a numbered list of QUOTES — the dreamer's own words, copied out of the transcripts during that reading. Work only from these observations, their citations, and the quotes.
 
 Return three things:
 
 1. summary — a short opening orientation: what this set of dreams is like to read.
 
 2. claims — the trends themselves. A trend is something that holds across the set, so prefer claims supported by more than one dream, and merge observations from different batches that are really the same pattern. Every claim MUST cite the specific dream numbers it rests on — a claim citing no dreams is not a trend and will be discarded. Cite only dreams that genuinely support the claim; do not pad citations. Never cite a dream number that does not appear in the observations you were given.
+
+   Each claim also carries evidence: the ids of the quotes that show it, from the list you were given. Rules for evidence:
+   - Reference quotes by their id only. Do not retype, trim, or adjust the text of a quote; you cannot introduce a quote that is not in the list.
+   - At least one quote for every dream number the claim cites. If you cannot find a quote in the list from a dream, do not cite that dream on that claim.
+   - More than one quote from a dream is fine where more than one passage shows it.
+   - Pick the quote that most directly shows the claim, not the most quotable line.
+   - A claim you cannot support with any quote at all is not a claim. Leave it out.
+
+   Write the claim itself exactly as you would have without any of this. The prose may still paraphrase and range across dreams as prose should; the evidence sits alongside it, not inside it.
 
 3. closing — a genuine conclusion, and the most important part. Do NOT restate the claims or list them again. Say what they add up to when taken together: the through-line running under them, what appears to be at stake for this dreamer, and where the tension sits. Then state plainly what the evidence does NOT yet support — the reading you considered and rejected, or what you would need more dreams to tell. End with something that lands: a claim about the whole, not a hedge. If this set is too small or too varied to support a through-line, say exactly that instead of manufacturing one.
 

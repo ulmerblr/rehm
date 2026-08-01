@@ -4,6 +4,7 @@ import { listTrendRuns, listDreamDates, listDreams, type TrendRun } from "@/lib/
 import { formatDreamNumbers } from "@/lib/scope";
 import ExportButton from "@/app/components/ExportButton";
 import TrendRunner from "./TrendRunner";
+import { CitationProvider, Cite } from "@/app/components/Citations";
 import { resolveView } from "@/lib/viewLang";
 import { loadTranslations, display } from "@/lib/translations";
 
@@ -29,6 +30,7 @@ export default async function Trends() {
   ]);
 
   return (
+    <CitationProvider lang={view.lang}>
     <main>
       <h1>{t.trends}</h1>
       <p className="machine">{t.trendsIntro}</p>
@@ -77,6 +79,41 @@ export default async function Trends() {
                         <div className="machine">
                           {display(c.claim, tr, "trend_claim", c.id).text}
                         </div>
+
+                        {/* The evidence, in the dreamer's own words and never
+                            translated: these are the words that were actually
+                            said, and the whole point of showing them is that
+                            they are checkable against the transcript. */}
+                        {c.spans.length > 0 && (
+                          <div className="evidence">
+                            {c.spans.map((s) => (
+                              <div key={s.id} className="evidence-row">
+                                <span className="evidence-no">
+                                  {String(s.dreamNumber).padStart(2, "0")}
+                                </span>
+                                {s.start !== null && s.end !== null ? (
+                                  <Cite
+                                    target={{
+                                      dreamId: s.dreamId,
+                                      dreamNumber: s.dreamNumber,
+                                      dreamtOn: s.dreamtOn,
+                                      start: s.start,
+                                      end: s.end,
+                                    }}
+                                  >
+                                    “{s.quote}”
+                                  </Cite>
+                                ) : (
+                                  // Not found in the transcript. Kept and shown
+                                  // — dropping it would hide the one thing the
+                                  // tally below is there to make visible.
+                                  <span className="evidence-quote">“{s.quote}”</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
                         <div>
                           {c.citations.map((cit) => (
                             <Link key={cit.id} href={`/dreams/${cit.id}`} className="cite">
@@ -104,6 +141,25 @@ export default async function Trends() {
                   {t.atNDreams(run.corpusSize)} · {run.scopeLabel} · {run.model} ·{" "}
                   {run.promptVersion}
                 </div>
+                {/* Whether the model is quoting or inventing, as a number. A
+                    run with no spans at all predates trend-v4 and says nothing
+                    rather than reporting a misleading zero. */}
+                {run.spanTally.exact + run.spanTally.normalized + run.spanTally.unresolved > 0 && (
+                  <div
+                    className={
+                      run.spanTally.unresolved > 0
+                        ? "stamp stamp-flag"
+                        : "stamp stamp-machine"
+                    }
+                    style={{ marginTop: 6 }}
+                  >
+                    {t.spansResolved(
+                      run.spanTally.exact,
+                      run.spanTally.normalized,
+                      run.spanTally.unresolved
+                    )}
+                  </div>
+                )}
                 <div style={{ marginTop: 14 }}>
                   <ExportButton text={buildTrendExport(run)} label={t.copyAsText} copiedLabel={t.copied} />
                 </div>
@@ -113,6 +169,7 @@ export default async function Trends() {
         </div>
       )}
     </main>
+    </CitationProvider>
   );
 }
 
@@ -130,6 +187,11 @@ function buildTrendExport(run: TrendRun): string {
   for (const c of run.claims) {
     const cites = c.citations.map((cit) => `#${cit.number}`).join(", ");
     parts.push(`- ${c.claim}  [dreams: ${cites}]`);
+    // The evidence travels with the claim. An exported claim without the words
+    // it rests on is the thing this whole feature exists to stop.
+    for (const s of c.spans) {
+      parts.push(`    #${s.dreamNumber} "${s.quote}"${s.kind === "unresolved" ? "  [not found in the transcript]" : ""}`);
+    }
   }
   if (run.closing) {
     parts.push("");

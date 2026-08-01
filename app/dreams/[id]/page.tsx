@@ -1,9 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireOnboarded } from "@/lib/session";
-import { getDream, getRestatementState, getAnalyses, getAddenda } from "@/lib/queries";
+import {
+  getDream,
+  getRestatementState,
+  getAnalyses,
+  getAddenda,
+  citationsForDream,
+} from "@/lib/queries";
+import { segmentByQuotations, segmentTranslated } from "@/lib/spans";
 import ExportButton from "@/app/components/ExportButton";
 import RestatementLoop from "@/app/components/RestatementLoop";
+import { CitationProvider } from "@/app/components/Citations";
+import AnalysisBody from "@/app/components/AnalysisBody";
+import CitedTranscript from "@/app/components/CitedTranscript";
 import DreamActions from "./DreamActions";
 import DeleteDream from "./DeleteDream";
 import EditableTitle from "./EditableTitle";
@@ -23,10 +33,11 @@ export default async function DreamPage({
   const dream = await getDream(id, userId);
   if (!dream) notFound();
 
-  const [restatement, analyses, addenda] = await Promise.all([
+  const [restatement, analyses, addenda, citations] = await Promise.all([
     getRestatementState(dream.id),
     getAnalyses(dream.id),
     getAddenda(dream.id),
+    citationsForDream(dream.id, userId),
   ]);
 
   const view = await resolveView(userId);
@@ -38,7 +49,19 @@ export default async function DreamPage({
     ...addenda.map((a) => ({ type: "addendum" as const, id: a.id })),
     ...(restatement ? [{ type: "restatement" as const, id: restatement.id }] : []),
     ...analyses.map((a) => ({ type: "analysis" as const, id: a.id })),
+    // The claims resting on this transcript are shown in the margin panel, and
+    // they are generated text like any other — they get the same treatment.
+    ...citations.flatMap((c) => c.claims.map((cl) => ({ type: "trend_claim" as const, id: cl.id }))),
   ]);
+
+  const citationsShown = citations.map((c) => ({
+    ...c,
+    claims: c.claims.map((cl) => ({
+      id: cl.id,
+      runCreatedAt: cl.runCreatedAt,
+      claimShown: display(cl.claim, tr, "trend_claim", cl.id).text,
+    })),
+  }));
 
   const transcript = display(dream.rawTranscript, tr, "dream", dream.id);
 
@@ -47,6 +70,7 @@ export default async function DreamPage({
   const exportText = buildExport(dream, restatement, analyses, addenda);
 
   return (
+    <CitationProvider lang={view.lang}>
     <main>
       <div className="row" style={{ justifyContent: "space-between", marginBottom: 18 }}>
         <span className="stamp">
@@ -70,13 +94,25 @@ export default async function DreamPage({
 
       {/* Testimony. First, largest, unadorned — it is the document.
           When it is being shown translated it drops out of the serif: those
-          are not the words that were said, and the type says so. */}
-      <div
-        className={transcript.translated ? "machine" : "testimony"}
-        style={{ marginTop: 22, whiteSpace: transcript.translated ? "pre-wrap" : undefined }}
-      >
-        {transcript.text}
-      </div>
+          are not the words that were said, and the type says so.
+
+          The gutter marks only appear on the original. Offsets index the
+          transcript as spoken, and a translation is a different string of a
+          different length — carrying them across would mark the wrong words. */}
+      {transcript.translated ? (
+        <div className="machine" style={{ marginTop: 22, whiteSpace: "pre-wrap" }}>
+          {transcript.text}
+        </div>
+      ) : (
+        <div style={{ marginTop: 22 }}>
+          <CitedTranscript
+            text={transcript.text}
+            citations={citationsShown}
+            lang={view.lang}
+            className="testimony"
+          />
+        </div>
+      )}
       {transcript.translated && (
         <span className="stamp stamp-machine translated-note">{t.machineTranslation}</span>
       )}
@@ -168,17 +204,29 @@ export default async function DreamPage({
         {analyses.length === 0 ? (
           <p className="stamp stamp-flag">{t.notAnalyzed}</p>
         ) : (
-          analyses.map((a) => (
-            <div key={a.id} className="derived">
-              <div className="stamp stamp-machine" style={{ marginBottom: 8 }}>
-                {t.formatDate(a.createdAt)} · {a.model} · {a.promptVersion}
-                {a.blind ? " · blind" : ""}
+          analyses.map((a) => {
+            // Resolved here, not stored: the two strings this needs are both
+            // already on file, so every analysis ever written is clickable
+            // without a re-run, and a better matcher improves the old ones too.
+            const shown = display(a.body, tr, "analysis", a.id);
+            const segments = shown.translated
+              ? segmentTranslated(shown.text, a.body ?? "", dream.rawTranscript)
+              : segmentByQuotations(shown.text, dream.rawTranscript);
+            return (
+              <div key={a.id} className="derived">
+                <div className="stamp stamp-machine" style={{ marginBottom: 8 }}>
+                  {t.formatDate(a.createdAt)} · {a.model} · {a.promptVersion}
+                  {a.blind ? " · blind" : ""}
+                </div>
+                <AnalysisBody
+                  segments={segments}
+                  dreamId={dream.id}
+                  dreamNumber={dream.sequenceNo}
+                  dreamtOn={dream.dreamtOn}
+                />
               </div>
-              <div className="machine" style={{ whiteSpace: "pre-wrap" }}>
-                {display(a.body, tr, "analysis", a.id).text}
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
@@ -191,6 +239,7 @@ export default async function DreamPage({
       </p>
       <DeleteDream dreamId={dream.id} sequenceNo={dream.sequenceNo} lang={view.lang} />
     </main>
+    </CitationProvider>
   );
 }
 

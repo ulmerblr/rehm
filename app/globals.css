@@ -1021,3 +1021,151 @@ summary {
   opacity: 0.6;
   cursor: default;
 }
+
+/* ---- Citations: the machine pointing back at what was actually said ------ */
+
+/* A quoted passage inside machine prose, made tappable.
+   Styled as the dreamer's voice, because that is whose words they are: the
+   provenance rule doesn't stop applying because the quote is nested inside an
+   analysis. It reads warm and serif against the cool sans around it, which is
+   also what makes it findable without an icon or an underline shouting. */
+.cite-quote {
+  /* inline, NOT the button default of inline-block: a quotation runs to a
+     couple of lines and an inline-block one cannot break across them — it
+     would sit in a rigid box shoving the sentence around it. `white-space` is
+     inherited, but the UA stylesheet resets it on buttons, so it is taken back
+     explicitly or a quote inside pre-wrap prose loses its line breaks. */
+  display: inline;
+  white-space: inherit;
+  font-family: var(--font-said-stack);
+  font-size: 1.0625em; /* relative: the serif runs small beside the sans */
+  color: var(--said);
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  text-align: left;
+  /* The only decoration: a hairline that says "this goes somewhere" without
+     competing with the sentence it sits in. */
+  border-bottom: 1px solid var(--rule);
+  transition: border-color 0.12s ease;
+}
+
+.cite-quote:hover,
+.cite-quote:focus-visible {
+  border-bottom-color: var(--brass);
+}
+
+/* Evidence beneath a trend claim. Quotes stand in their own stack rather than
+   in the prose, because the claim ranges over several dreams and each quote
+   belongs to exactly one. */
+.evidence {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.evidence-row {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.evidence-no {
+  flex: none;
+  font-family: var(--font-data-stack);
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  color: var(--machine-dim);
+  padding-top: 3px;
+}
+
+/* An unresolved quote: kept, shown, not tappable. It reads as testimony like
+   any other quote — only the hairline is missing, which is the difference
+   between "you can check this" and "this is what it said". */
+.evidence-quote {
+  font-family: var(--font-said-stack);
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: var(--said);
+}
+
+/* A passage of the transcript that a trend claim rests on. The mark is a rule
+   in the gutter, not a highlight — the transcript is the document, and the
+   machine's interest in a sentence doesn't get to recolour it. */
+.cited-passage {
+  /* Same reason as .cite-quote — and more so here, where a marked passage is a
+     whole sentence of a flowing transcript. Inline means the gutter rule draws
+     on the first line fragment only, which is exactly the mark wanted. */
+  display: inline;
+  white-space: inherit;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-left: 2px solid var(--rule);
+  margin-left: -10px;
+  padding: 0 0 0 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.12s ease;
+}
+
+.cited-passage:hover,
+.cited-passage:focus-visible {
+  border-left-color: var(--brass);
+}
+
+/* ---- The modal ---------------------------------------------------------- */
+
+/* <dialog> + showModal() carries focus trapping, Escape and the top layer.
+   Everything below is only appearance. */
+.cite-modal {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  max-width: min(38rem, calc(100vw - 32px));
+  width: 100%;
+  max-height: min(80vh, 44rem);
+  color: var(--said);
+}
+
+.cite-modal::backdrop {
+  background: rgba(4, 9, 20, 0.72);
+}
+
+.cite-panel {
+  background: var(--ink-raised);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 16px 18px 18px;
+  max-height: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cite-body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cite-passage {
+  white-space: pre-wrap;
+  margin: 0;
+  max-width: none;
+}
+
+/* The quote inside its context. A wash of the accent at low opacity, as asked
+   — not a border, not a box. It has to survive landing mid-sentence, so it
+   carries no edges of its own. */
+.cite-mark {
+  background: color-mix(in srgb, var(--brass) 22%, transparent);
+  color: inherit;
+  border-radius: 2px;
+  padding: 1px 0;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}

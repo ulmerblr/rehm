@@ -258,6 +258,18 @@ export type Dict = {
   spentOnYourKeyNote: string;
   billedHere: (input: number, output: number) => string;
 
+  // Clickable citations
+  inTheTranscript: string;
+  close: string;
+  loading: string;
+  couldNotLoadTranscript: string;
+  showWholeTranscript: string;
+  showLessContext: string;
+  evidence: string;
+  builtOnThis: string;
+  claimsRestingHere: (n: number) => string;
+  spansResolved: (exact: number, normalized: number, unresolved: number) => string;
+
   // First-run setup
   setupTitle: string;
   setupLead: string;
@@ -540,6 +552,20 @@ const en: Dict = {
   spentOnYourKeyNote:
     "What the accounts you're paying for have generated. Your own usage is above; this is on top of it.",
   billedHere: (input, output) => `${input.toLocaleString()} in · ${output.toLocaleString()} out`,
+
+  inTheTranscript: "In the transcript",
+  close: "close",
+  loading: "Finding it…",
+  couldNotLoadTranscript: "Couldn't load that transcript.",
+  showWholeTranscript: "the whole transcript",
+  showLessContext: "less",
+  evidence: "in your words",
+  builtOnThis: "Built on this",
+  claimsRestingHere: (n) => (n === 1 ? "1 claim rests on this" : `${n} claims rest on this`),
+  spansResolved: (exact, normalized, unresolved) =>
+    `${exact + normalized} of ${exact + normalized + unresolved} quotes found` +
+    (normalized > 0 ? ` (${normalized} after normalizing)` : "") +
+    (unresolved > 0 ? ` · ${unresolved} not found` : ""),
 
   setupTitle: "Two things before you start",
   setupLead:
@@ -832,6 +858,21 @@ const es: Dict = {
     "Lo que han generado las cuentas que estás pagando. Tu propio consumo está arriba; esto va aparte.",
   billedHere: (input, output) =>
     `${input.toLocaleString()} de entrada · ${output.toLocaleString()} de salida`,
+
+  inTheTranscript: "En la transcripción",
+  close: "cerrar",
+  loading: "Buscándolo…",
+  couldNotLoadTranscript: "No se pudo cargar esa transcripción.",
+  showWholeTranscript: "la transcripción entera",
+  showLessContext: "menos",
+  evidence: "en tus palabras",
+  builtOnThis: "Construido sobre esto",
+  claimsRestingHere: (n) =>
+    n === 1 ? "1 afirmación se apoya en esto" : `${n} afirmaciones se apoyan en esto`,
+  spansResolved: (exact, normalized, unresolved) =>
+    `${exact + normalized} de ${exact + normalized + unresolved} citas encontradas` +
+    (normalized > 0 ? ` (${normalized} tras normalizar)` : "") +
+    (unresolved > 0 ? ` · ${unresolved} sin encontrar` : ""),
 
   setupTitle: "Dos cosas antes de empezar",
   setupLead:

@@ -497,7 +497,30 @@ export async function getAnalyses(dreamId: string): Promise<Analysis[]> {
 }
 
 export type Citation = { number: number; id: string };
-export type TrendClaim = { id: string; claim: string; citations: Citation[] };
+
+/** One piece of evidence: a claim, a dream, and the passage it rests on. */
+export type ClaimSpan = {
+  id: string;
+  dreamId: string;
+  /** The dream's position in the corpus, for the mono header on the modal. */
+  dreamNumber: number;
+  dreamtOn: string | null;
+  quote: string;
+  /** Offsets into that dream's raw transcript. Null when unresolved. */
+  start: number | null;
+  end: number | null;
+  kind: "exact" | "normalized" | "unresolved";
+};
+
+export type TrendClaim = {
+  id: string;
+  claim: string;
+  citations: Citation[];
+  spans: ClaimSpan[];
+};
+
+/** How the evidence for a run landed. The unresolved count is the one to watch. */
+export type SpanTally = { exact: number; normalized: number; unresolved: number };
 export type TrendRun = {
   id: string;
   corpusSize: number;
@@ -510,6 +533,7 @@ export type TrendRun = {
   closing: string | null;
   createdAt: string;
   claims: TrendClaim[];
+  spanTally: SpanTally;
 };
 
 export async function listTrendRuns(userId: string): Promise<TrendRun[]> {
@@ -535,10 +559,52 @@ export async function listTrendRuns(userId: string): Promise<TrendRun[]> {
   if (runRows.length === 0) return [];
 
   const dreamRows = (await sql`
-    SELECT id, sequence_no FROM dreams WHERE user_id = ${userId}
+    SELECT id, sequence_no, dreamt_on FROM dreams WHERE user_id = ${userId}
   `) as Array<Record<string, unknown>>;
   const seqById = new Map<string, number>();
-  for (const d of dreamRows) seqById.set(String(d.id), toInt(d.sequence_no));
+  const dateById = new Map<string, string | null>();
+  for (const d of dreamRows) {
+    seqById.set(String(d.id), toInt(d.sequence_no));
+    dateById.set(String(d.id), toDateStr(d.dreamt_on));
+  }
+
+  // Evidence for every claim on the page, in one query. Degrades to no spans
+  // if 0024 hasn't landed — the runs still read, they just aren't clickable.
+  const spansByClaim = new Map<string, ClaimSpan[]>();
+  try {
+    const spanRows = (await sql`
+      SELECT s.id, s.trend_claim_id, s.dream_id, s.quote,
+             s.char_start, s.char_end, s.match_kind
+      FROM trend_claim_spans s
+      JOIN trend_claims c ON c.id = s.trend_claim_id
+      JOIN trend_runs r   ON r.id = c.trend_run_id
+      WHERE r.user_id = ${userId}
+      ORDER BY s.created_at ASC
+    `) as Array<Record<string, unknown>>;
+    for (const s of spanRows) {
+      const dreamId = String(s.dream_id);
+      const claimId = String(s.trend_claim_id);
+      const list = spansByClaim.get(claimId) ?? [];
+      list.push({
+        id: String(s.id),
+        dreamId,
+        dreamNumber: seqById.get(dreamId) ?? 0,
+        dreamtOn: dateById.get(dreamId) ?? null,
+        quote: String(s.quote),
+        start: s.char_start == null ? null : toInt(s.char_start),
+        end: s.char_end == null ? null : toInt(s.char_end),
+        kind:
+          s.match_kind === "exact"
+            ? "exact"
+            : s.match_kind === "normalized"
+              ? "normalized"
+              : "unresolved",
+      });
+      spansByClaim.set(claimId, list);
+    }
+  } catch (err) {
+    if (!isMissingSchema(err)) throw err;
+  }
 
   const runs: TrendRun[] = [];
   for (const r of runRows) {
@@ -555,8 +621,13 @@ export async function listTrendRuns(userId: string): Promise<TrendRun[]> {
         .map((id) => ({ id, number: seqById.get(id) }))
         .filter((c): c is Citation => typeof c.number === "number")
         .sort((a, b) => a.number - b.number);
-      return { id: String(c.id), claim: String(c.claim), citations };
+      const spans = (spansByClaim.get(String(c.id)) ?? []).sort(
+        (a, b) => a.dreamNumber - b.dreamNumber || (a.start ?? 0) - (b.start ?? 0)
+      );
+      return { id: String(c.id), claim: String(c.claim), citations, spans };
     });
+    const spanTally: SpanTally = { exact: 0, normalized: 0, unresolved: 0 };
+    for (const c of claims) for (const s of c.spans) spanTally[s.kind]++;
     runs.push({
       id: runId,
       corpusSize: toInt(r.corpus_size),
@@ -574,9 +645,68 @@ export async function listTrendRuns(userId: string): Promise<TrendRun[]> {
       closing: r.closing == null ? null : String(r.closing),
       createdAt: toIso(r.created_at) ?? "",
       claims,
+      spanTally,
     });
   }
   return runs;
+}
+
+/** A passage of one dream that trend claims keep coming back to. */
+export type DreamCitation = {
+  start: number;
+  end: number;
+  quote: string;
+  claims: Array<{ id: string; claim: string; runId: string; runCreatedAt: string }>;
+};
+
+/**
+ * The reverse direction: which of this dream's words the machine keeps
+ * returning to, and what it built on them.
+ *
+ * Grouped by character range, because two claims resting on the same sentence
+ * is the interesting case — that is a passage doing work — and showing it as
+ * two identical marks in the margin would hide exactly that.
+ */
+export async function citationsForDream(
+  dreamId: string,
+  userId: string
+): Promise<DreamCitation[]> {
+  const sql = getSql();
+  try {
+    const rows = (await sql`
+      SELECT s.char_start, s.char_end, s.quote,
+             c.id AS claim_id, c.claim, r.id AS run_id, r.created_at
+      FROM trend_claim_spans s
+      JOIN trend_claims c ON c.id = s.trend_claim_id
+      JOIN trend_runs r   ON r.id = c.trend_run_id
+      WHERE s.dream_id = ${dreamId} AND r.user_id = ${userId}
+        AND s.char_start IS NOT NULL
+      ORDER BY s.char_start ASC, r.created_at DESC
+    `) as Array<Record<string, unknown>>;
+
+    const byRange = new Map<string, DreamCitation>();
+    for (const r of rows) {
+      const start = toInt(r.char_start);
+      const end = toInt(r.char_end);
+      const key = `${start}:${end}`;
+      const entry = byRange.get(key) ?? { start, end, quote: String(r.quote), claims: [] };
+      // The same claim can be reached twice if it cites one passage more than
+      // once; the margin should list it once.
+      if (!entry.claims.some((c) => c.id === String(r.claim_id))) {
+        entry.claims.push({
+          id: String(r.claim_id),
+          claim: String(r.claim),
+          runId: String(r.run_id),
+          runCreatedAt: toIso(r.created_at) ?? "",
+        });
+      }
+      byRange.set(key, entry);
+    }
+    return Array.from(byRange.values()).sort((a, b) => a.start - b.start);
+  } catch (err) {
+    if (!isMissingSchema(err)) throw err;
+    return [];
+  }
 }
 
 // Cost visibility: lifetime token total from the append-only usage ledger
