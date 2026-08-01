@@ -44,7 +44,7 @@ export default function KeyForm({ hasKey, lang }: { hasKey: boolean; lang: Lang 
   return (
     <div className="stack">
       <div>
-        <label htmlFor="apiKey">{hasKey ? t.replaceApiKey : "API key"}</label>
+        <label htmlFor="apiKey">{hasKey ? t.replaceApiKey : t.apiKeyLabel}</label>
         <input
           id="apiKey"
           type="password"

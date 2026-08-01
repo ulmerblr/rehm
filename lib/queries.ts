@@ -155,6 +155,43 @@ export async function listInvites(userId: string): Promise<InviteListItem[]> {
   }
 }
 
+export type AccountRow = {
+  id: string;
+  email: string;
+  role: "owner" | "member";
+  createdAt: string;
+  dreams: number;
+  isSelf: boolean;
+};
+
+/**
+ * Every account, for the owner's list. Carries the dream count because the
+ * only useful thing to know before erasing an account is how much is in it.
+ * Degrades to an empty list if the role column isn't there yet.
+ */
+export async function listAccounts(viewerId: string): Promise<AccountRow[]> {
+  const sql = getSql();
+  try {
+    const rows = (await sql`
+      SELECT u.id, u.email, u.role, u.created_at,
+             (SELECT count(*)::int FROM dreams d WHERE d.user_id = u.id) AS dreams
+      FROM users u
+      ORDER BY u.created_at ASC
+    `) as Array<Record<string, unknown>>;
+    return rows.map((r) => ({
+      id: String(r.id),
+      email: String(r.email),
+      role: r.role === "owner" ? "owner" : "member",
+      createdAt: toIso(r.created_at) ?? "",
+      dreams: toInt(r.dreams),
+      isSelf: String(r.id) === viewerId,
+    }));
+  } catch (err) {
+    if (!isMissingSchema(err)) throw err;
+    return [];
+  }
+}
+
 export type DashboardStats = {
   dreams: number;
   analyzedDreams: number;

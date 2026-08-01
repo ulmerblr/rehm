@@ -1,11 +1,18 @@
 import { requireUserId } from "@/lib/session";
-import { getActiveKeyInfo, getTokenTotal, getUserEmail, listInvites } from "@/lib/queries";
+import {
+  getActiveKeyInfo,
+  getTokenTotal,
+  getUserEmail,
+  listAccounts,
+  listInvites,
+} from "@/lib/queries";
 import { headers } from "next/headers";
 import { resolveView } from "@/lib/viewLang";
 import { quote } from "@/lib/backfill";
 import { otherLang } from "@/lib/lang";
 import KeyForm from "./KeyForm";
 import LanguageSettings from "./LanguageSettings";
+import Accounts from "./Accounts";
 import MigrateButton from "./MigrateButton";
 import Invites from "./Invites";
 
@@ -15,11 +22,13 @@ export default async function Settings() {
   const userId = await requireUserId();
   const view = await resolveView(userId);
   const t = view.t;
-  const [key, tokens, email, invites] = await Promise.all([
+  const [key, tokens, email, invites, accounts] = await Promise.all([
     getActiveKeyInfo(userId),
     getTokenTotal(userId),
     getUserEmail(userId),
     listInvites(userId),
+    // Only the owner sees this, so only the owner pays for the query.
+    view.isOwner ? listAccounts(userId) : Promise.resolve([]),
   ]);
 
   let pending = { items: 0, usd: 0 };
@@ -105,6 +114,13 @@ export default async function Settings() {
           {t.signOut}
         </button>
       </form>
+
+      {view.isOwner && accounts.length > 0 && (
+        <>
+          <h2>{t.accounts}</h2>
+          <Accounts accounts={accounts} lang={view.lang} />
+        </>
+      )}
 
       <h2>{t.maintenance}</h2>
       <p className="machine" style={{ marginTop: 0 }}>

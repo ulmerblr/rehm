@@ -250,6 +250,17 @@ export type Dict = {
   setupContinueNoKey: string;
   setupKeySaved: string;
   needAKey: string;
+
+  // Accounts (owner only)
+  accounts: string;
+  accountsNote: string;
+  owner: string;
+  member: string;
+  dreamsCount: (n: number) => string;
+  deleteAccount: string;
+  deleteAccountConfirm: (email: string, dreams: number) => string;
+  deleteAccountDone: (email: string) => string;
+  apiKeyLabel: string;
 };
 
 const en: Dict = {
@@ -503,6 +514,18 @@ const en: Dict = {
   setupContinueNoKey: "Start without a key for now",
   setupKeySaved: "Key saved and verified.",
   needAKey: "Add your API key in settings — nothing can be generated without one.",
+
+  accounts: "Accounts",
+  accountsNote:
+    "Everyone with an account here. Deleting one erases its dreams, analyses and trend passes permanently, and cannot be undone.",
+  owner: "owner",
+  member: "member",
+  dreamsCount: (n) => (n === 1 ? "1 dream" : `${n} dreams`),
+  deleteAccount: "Delete",
+  deleteAccountConfirm: (email, dreams) =>
+    `Erase ${email} and its ${dreams === 1 ? "1 dream" : `${dreams} dreams`}? This cannot be undone.`,
+  deleteAccountDone: (email) => `${email} deleted.`,
+  apiKeyLabel: "API key",
 };
 
 const es: Dict = {
@@ -759,6 +782,18 @@ const es: Dict = {
   setupContinueNoKey: "Empezar sin clave por ahora",
   setupKeySaved: "Clave guardada y comprobada.",
   needAKey: "Añade tu clave de la API en los ajustes — sin ella no se puede generar nada.",
+
+  accounts: "Cuentas",
+  accountsNote:
+    "Todas las personas con cuenta aquí. Borrar una elimina para siempre sus sueños, sus análisis y sus patrones, y no se puede deshacer.",
+  owner: "propietario",
+  member: "miembro",
+  dreamsCount: (n) => (n === 1 ? "1 sueño" : `${n} sueños`),
+  deleteAccount: "Borrar",
+  deleteAccountConfirm: (email, dreams) =>
+    `¿Borrar ${email} y sus ${dreams === 1 ? "1 sueño" : `${dreams} sueños`}? No se puede deshacer.`,
+  deleteAccountDone: (email) => `${email} borrada.`,
+  apiKeyLabel: "Clave de la API",
 };
 
 const DICTS: Record<Lang, Dict> = { en, es };

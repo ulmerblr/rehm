@@ -102,6 +102,29 @@ export default function SetupFlow({ initialLang }: { initialLang: Lang }) {
         {t.setupLanguageWhy}
       </p>
 
+      <div className="choice-stack">
+        {[false, true].map((value) => (
+          <button
+            key={String(value)}
+            type="button"
+            className={dual === value ? "choice choice-on" : "choice"}
+            onClick={() => setDual(value)}
+            disabled={busy}
+            aria-pressed={dual === value}
+          >
+            <span className="choice-mark" aria-hidden="true" />
+            <span>
+              <span className="choice-title">
+                {value ? t.dualLanguage : t.singleLanguage}
+              </span>
+              <span className="choice-note">
+                {value ? t.setupBothLanguages : t.singleLanguageNote}
+              </span>
+            </span>
+          </button>
+        ))}
+      </div>
+
       <h2>{t.setupKey}</h2>
       <p className="machine" style={{ marginTop: 0 }}>
         {t.setupKeyWhy}
@@ -135,18 +158,6 @@ export default function SetupFlow({ initialLang }: { initialLang: Lang }) {
           </p>
         </>
       )}
-
-      <h2>{t.language}</h2>
-      <label className="row" style={{ gap: 10, alignItems: "flex-start" }}>
-        <input
-          type="checkbox"
-          checked={dual}
-          onChange={(e) => setDual(e.target.checked)}
-          disabled={busy}
-          style={{ width: "auto", marginTop: 3 }}
-        />
-        <span className="machine">{t.setupBothLanguages}</span>
-      </label>
 
       {error && (
         <p className="notice" style={{ marginTop: 16 }}>

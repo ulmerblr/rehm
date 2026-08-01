@@ -33,7 +33,7 @@ export default function AppBarChrome({
         <div className="app-bar-right">
           {viewLang && <LangToggle current={viewLang} />}
           {email ? (
-            <Link href="/settings" className="who">
+            <Link href="/settings" className="who" title={email}>
               {email.split("@")[0]}
             </Link>
           ) : null}

@@ -10,6 +10,8 @@ export type LangSettings = {
   /** Has the setup screen been answered? Not the same as "has a key". */
   onboarded: boolean;
   hasKey: boolean;
+  /** The first account to exist administers the instance. */
+  isOwner: boolean;
 };
 
 /**
@@ -23,7 +25,13 @@ export type LangSettings = {
  */
 // Treat an unreadable account as set up: a gate that fails closed would lock
 // people out of the app over a schema hiccup.
-const FALLBACK: LangSettings = { language: "en", dual: false, onboarded: true, hasKey: false };
+const FALLBACK: LangSettings = {
+  language: "en",
+  dual: false,
+  onboarded: true,
+  hasKey: false,
+  isOwner: false,
+};
 
 export const getLangSettings = cache(async function getLangSettings(
   userId: string
@@ -31,7 +39,7 @@ export const getLangSettings = cache(async function getLangSettings(
   const sql = getSql();
   try {
     const rows = (await sql`
-      SELECT u.language, u.dual_language, u.onboarded_at,
+      SELECT u.language, u.dual_language, u.onboarded_at, u.role,
              EXISTS (
                SELECT 1 FROM user_api_keys k
                WHERE k.user_id = u.id AND k.status = 'active'
@@ -41,6 +49,7 @@ export const getLangSettings = cache(async function getLangSettings(
       language: string;
       dual_language: boolean;
       onboarded_at: unknown;
+      role: string;
       has_key: boolean;
     }>;
     if (rows.length === 0) return FALLBACK;
@@ -49,6 +58,7 @@ export const getLangSettings = cache(async function getLangSettings(
       dual: Boolean(rows[0].dual_language),
       onboarded: rows[0].onboarded_at != null,
       hasKey: Boolean(rows[0].has_key),
+      isOwner: rows[0].role === "owner",
     };
   } catch {
     return FALLBACK;

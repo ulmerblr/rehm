@@ -12,6 +12,8 @@ export type View = {
   dual: boolean;
   /** Whether an API key is on file. Nothing generates without one. */
   hasKey: boolean;
+  /** The first account to exist administers the instance. */
+  isOwner: boolean;
   /** Interface strings for `lang`. */
   t: Dict;
 };
@@ -29,11 +31,11 @@ export type View = {
  * user doesn't read.
  */
 export async function resolveView(userId: string): Promise<View> {
-  const { language, dual, hasKey } = await getLangSettings(userId);
+  const { language, dual, hasKey, isOwner } = await getLangSettings(userId);
   if (!dual) {
-    return { lang: language, accountLang: language, dual: false, hasKey, t: dict(language) };
+    return { lang: language, accountLang: language, dual: false, hasKey, isOwner, t: dict(language) };
   }
   const jar = await cookies();
   const lang = asLang(jar.get(VIEW_LANG_COOKIE)?.value, language);
-  return { lang, accountLang: language, dual: true, hasKey, t: dict(lang) };
+  return { lang, accountLang: language, dual: true, hasKey, isOwner, t: dict(lang) };
 }
