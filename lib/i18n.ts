@@ -107,6 +107,9 @@ export type Dict = {
   backfillRunning: (done: number, total: number) => string;
   backfillDone: string;
   backfillFailed: (n: number) => string;
+  backfillKeepOpen: string;
+  backfillInterrupted: (left: number) => string;
+  backfillContinue: string;
   translationsKept: string;
 
   // The toggle
@@ -207,6 +210,13 @@ const en: Dict = {
   backfillRunning: (done, total) => `Translating ${done} of ${total}…`,
   backfillDone: "Everything is ready in both languages.",
   backfillFailed: (n) => `${n} couldn't be translated. You can run it again.`,
+  backfillKeepOpen:
+    "Keep this screen open while it runs — switching apps pauses it. Anything already translated is saved.",
+  backfillInterrupted: (left) =>
+    left === 1
+      ? "Interrupted, probably by switching away. 1 thing left — nothing already done is lost."
+      : `Interrupted, probably by switching away. ${left} things left — nothing already done is lost.`,
+  backfillContinue: "Continue",
   translationsKept:
     "The translations you already paid for are kept. Turning this back on later is free.",
 
@@ -308,6 +318,13 @@ const es: Dict = {
   backfillDone: "Todo está listo en los dos idiomas.",
   backfillFailed: (n) =>
     n === 1 ? "1 no se pudo traducir. Puedes intentarlo otra vez." : `${n} no se pudieron traducir. Puedes intentarlo otra vez.`,
+  backfillKeepOpen:
+    "Deja esta pantalla abierta mientras trabaja — si cambias de app se pausa. Lo ya traducido queda guardado.",
+  backfillInterrupted: (left) =>
+    left === 1
+      ? "Se interrumpió, seguramente al cambiar de pantalla. Queda 1 — no se ha perdido nada de lo hecho."
+      : `Se interrumpió, seguramente al cambiar de pantalla. Quedan ${left} — no se ha perdido nada de lo hecho.`,
+  backfillContinue: "Continuar",
   translationsKept:
     "Las traducciones que ya pagaste se quedan. Volver a activarlo más adelante es gratis.",
 

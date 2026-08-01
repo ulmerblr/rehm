@@ -117,6 +117,34 @@ export async function pendingItems(userId: string, target: Lang): Promise<Item[]
   return out;
 }
 
+/**
+ * How much text to translate in one request.
+ *
+ * A fixed item count is the wrong unit: four titles is a second's work and
+ * four long transcripts can approach the function's 60s ceiling. Budgeting by
+ * characters lets the short items — titles, claims, which are most of a
+ * corpus — go dozens at a time while long transcripts go one or two, so the
+ * whole run needs far fewer round trips without any step running long.
+ *
+ * Always returns at least one item, so a single text larger than the budget
+ * still makes progress instead of stalling the run forever.
+ */
+export function batchByBudget<T extends { text: string }>(
+  items: T[],
+  charBudget: number
+): T[] {
+  const out: T[] = [];
+  let used = 0;
+  for (const item of items) {
+    const cost = item.text.length;
+    if (out.length > 0 && used + cost > charBudget) break;
+    out.push(item);
+    used += cost;
+    if (used >= charBudget) break;
+  }
+  return out;
+}
+
 export type Quote = { items: number; tokens: { input: number; output: number }; usd: number };
 
 /**

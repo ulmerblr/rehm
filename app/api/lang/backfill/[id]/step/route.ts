@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSql } from "@/lib/db";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { translateAndStore } from "@/lib/translations";
-import { pendingItems } from "@/lib/backfill";
+import { batchByBudget, pendingItems } from "@/lib/backfill";
 import { asLang } from "@/lib/lang";
 
 export const runtime = "nodejs";
@@ -11,10 +11,11 @@ export const maxDuration = 60;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// How many items to translate per request. Haiku on a few hundred words takes
-// a couple of seconds, so four sits well inside the 60s ceiling even when the
-// items are long transcripts and one of them retries.
-const PER_STEP = 4;
+// Characters of source text per request, not items. Haiku runs at roughly a
+// thousand characters a second, so ~12k leaves a wide margin under the 60s
+// ceiling while letting a step carry many short titles or a couple of long
+// transcripts — whichever it happens to find.
+const CHAR_BUDGET = 12000;
 
 // Do one chunk of a backfill and report progress.
 //
@@ -67,7 +68,7 @@ export async function POST(
     });
   }
 
-  const chunk = remaining.slice(0, PER_STEP);
+  const chunk = batchByBudget(remaining, CHAR_BUDGET);
   const result = await translateAndStore(userId, chunk, target);
 
   const doneItems = Number(job.done_items) + result.done;
