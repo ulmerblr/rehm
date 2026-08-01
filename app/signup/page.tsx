@@ -17,18 +17,7 @@ export default async function Signup({
   return (
     <main>
       <div style={{ textAlign: "center", margin: "24px 0 28px" }}>
-        <span
-          role="img"
-          aria-label="rehm"
-          style={{
-            display: "inline-block",
-            width: 148,
-            height: 44,
-            background: "var(--said)",
-            WebkitMask: "url(/wordmark-mono.svg) no-repeat center / contain",
-            mask: "url(/wordmark-mono.svg) no-repeat center / contain",
-          }}
-        />
+        <span className="wordmark wordmark-lg">rehm</span>
       </div>
       <p className="machine">Create an account. Invite only.</p>
 

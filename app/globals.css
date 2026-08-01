@@ -11,9 +11,9 @@
 :root {
   /* Surface — deep ink navy. The cold ground is the point: warm testimony
      advances against it, cool machine text recedes into it. */
-  --ink: #0a101c;
-  --ink-raised: #111a2b;
-  --rule: #1e2a3e;
+  --ink: #0d1626;
+  --ink-raised: #16223a;
+  --rule: #22324c;
 
   /* The dreamer's own voice — warm cream. */
   --said: #efe8dc;
@@ -312,15 +312,23 @@ label {
   gap: 12px;
 }
 
-/* The wordmark is masked so it takes the testimony color rather than pure
-   white — it belongs to the dreamer's side of the palette. */
-.app-bar-mark {
-  display: block;
-  width: 64px;
-  height: 19px;
-  background: var(--said);
-  -webkit-mask: url(/wordmark-mono.svg) no-repeat center / contain;
-  mask: url(/wordmark-mono.svg) no-repeat center / contain;
+/* The wordmark is set in the app's own testimony serif rather than shipped as
+   artwork: it renders identically everywhere, scales without a second asset,
+   and puts the app's name on the dreamer's side of the type system. */
+.wordmark {
+  font-family: var(--font-said-stack);
+  font-weight: 600;
+  font-size: 1.375rem;
+  line-height: 1;
+  letter-spacing: -0.012em;
+  color: var(--said);
+  text-decoration: none;
+  display: inline-block;
+}
+
+.wordmark-lg {
+  font-size: 2.75rem;
+  letter-spacing: -0.02em;
 }
 
 .who {

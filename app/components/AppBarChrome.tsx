@@ -16,8 +16,8 @@ export default function AppBarChrome({ email }: { email: string | null }) {
   return (
     <header className="app-bar">
       <div className="app-bar-inner">
-        <Link href="/" aria-label="rehm — home">
-          <span className="app-bar-mark" role="img" aria-label="rehm" />
+        <Link href="/" className="wordmark">
+          rehm
         </Link>
         {email ? (
           <Link href="/settings" className="who">
