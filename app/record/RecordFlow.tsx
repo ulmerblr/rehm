@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import RestatementLoop from "@/app/components/RestatementLoop";
+import { useDictation } from "@/lib/useDictation";
 
 export default function RecordFlow({
   sequenceNo,
@@ -17,42 +18,12 @@ export default function RecordFlow({
   const [error, setError] = useState<string | null>(null);
   const [ids, setIds] = useState<{ dreamId: string; restatementId: string } | null>(null);
 
-  // --- Web Speech dictation (optional; textarea is the source of truth) ---
-  const [listening, setListening] = useState(false);
-  const recognitionRef = useRef<unknown>(null);
-  const speechSupported =
-    typeof window !== "undefined" &&
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
-
-  function toggleDictation() {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const w = window as any;
-    if (listening) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (recognitionRef.current as any)?.stop();
-      return;
-    }
-    const Rec = w.SpeechRecognition || w.webkitSpeechRecognition;
-    if (!Rec) return;
-    const rec = new Rec();
-    rec.continuous = true;
-    rec.interimResults = false;
-    rec.lang = "en-US";
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    rec.onresult = (e: any) => {
-      let chunk = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) chunk += e.results[i][0].transcript;
-      }
-      if (chunk) setTranscript((prev) => (prev ? prev + " " : "") + chunk.trim());
-    };
-    rec.onend = () => setListening(false);
-    rec.onerror = () => setListening(false);
-    recognitionRef.current = rec;
-    rec.start();
-    setListening(true);
-  }
+  // Dictation is a convenience on top of the textarea, never a replacement for
+  // it: heard words land in the box, and the box stays the source of truth.
+  const appendHeard = useCallback((heard: string) => {
+    setTranscript((prev) => (prev ? prev + " " : "") + heard);
+  }, []);
+  const dictation = useDictation(appendHeard);
 
   async function submitCapture() {
     setError(null);
@@ -62,8 +33,7 @@ export default function RecordFlow({
     }
     setBusy(true);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (recognitionRef.current as any)?.stop();
+      dictation.stop();
       const res = await fetch("/api/dreams", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -111,15 +81,41 @@ export default function RecordFlow({
         onChange={(e) => setTranscript(e.target.value)}
         placeholder="Speak or type the dream…"
       />
-      {speechSupported && (
-        <button
-          type="button"
-          className={listening ? "btn btn-danger" : "btn"}
-          onClick={toggleDictation}
-          style={{ marginTop: 10 }}
-        >
-          {listening ? "Stop dictation" : "🎤 Dictate"}
-        </button>
+      {dictation.state !== "unsupported" && (
+        <div style={{ marginTop: 10 }}>
+          <button
+            type="button"
+            className={dictation.state === "on" ? "btn btn-danger" : "btn"}
+            onClick={dictation.toggle}
+          >
+            {dictation.state === "on"
+              ? "Stop dictation"
+              : dictation.state === "starting"
+                ? "Starting…"
+                : "🎤 Dictate"}
+          </button>
+
+          {/* What it has heard but not yet committed — the proof it's live. */}
+          {dictation.state === "on" && (
+            <p className="stamp stamp-machine" style={{ marginTop: 10 }}>
+              {dictation.interim ? `hearing: ${dictation.interim}` : "listening…"}
+            </p>
+          )}
+
+          {dictation.note && (
+            <p className="notice" style={{ marginTop: 10 }}>
+              {dictation.note}
+            </p>
+          )}
+        </div>
+      )}
+
+      {dictation.keyboardMic && (
+        <p className="machine" style={{ marginTop: 10 }}>
+          On a phone, tap into the box above and use the microphone key on your
+          keyboard — it handles long stretches of talking better than this button
+          does.
+        </p>
       )}
 
       <label htmlFor="dreamt_on">Date dreamt</label>
