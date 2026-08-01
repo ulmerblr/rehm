@@ -33,10 +33,18 @@ let cached: Promise<MigrateResult> | null = null;
 // call — the next boot, or the Settings button — retries from scratch.
 export function ensureMigrated(): Promise<MigrateResult> {
   if (!cached) {
-    cached = applyPending().catch((err) => {
-      cached = null;
-      throw err;
-    });
+    cached = applyPending()
+      .then((result) => {
+        // Only memoize a fully successful run. If a migration failed, clear the
+        // memo so the next request (or the Settings button, or the next deploy)
+        // retries it instead of serving the failure forever.
+        if (!result.ok) cached = null;
+        return result;
+      })
+      .catch((err) => {
+        cached = null;
+        throw err;
+      });
   }
   return cached;
 }

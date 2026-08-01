@@ -38,28 +38,30 @@ export async function POST(req: NextRequest) {
   `) as Array<{ next: unknown }>;
   const sequenceNo = Number(next);
 
-  // Best-effort title. Never throws; a null title just means the list derives
-  // one from the transcript. Title must be set at INSERT because dreams is
-  // immutable (0007), so this runs before the insert.
-  let title: string | null = null;
+  // Best-effort title generation. Never throws; if there's no key or the call
+  // fails, the dream still saves and the list derives a title instead.
   const got = await getUserAnthropic(userId);
-  if (!("error" in got)) {
-    const result = await generateTitle(got.client, rawTranscript);
-    if (result) {
-      title = result.title;
-      await sql`
-        INSERT INTO usage_events (user_id, kind, input_tokens, output_tokens)
-        VALUES (${userId}, 'title', ${result.usage.input}, ${result.usage.output})
-      `;
-      await markKeyVerified(got.keyId);
-    }
-  }
+  const titleResult = "error" in got ? null : await generateTitle(got.client, rawTranscript);
 
   const [dream] = (await sql`
-    INSERT INTO dreams (user_id, sequence_no, dreamt_on, capture_method, raw_transcript, title)
-    VALUES (${userId}, ${sequenceNo}, ${dreamtOn}, ${CAPTURE_METHOD}, ${rawTranscript}, ${title})
+    INSERT INTO dreams (user_id, sequence_no, dreamt_on, capture_method, raw_transcript)
+    VALUES (${userId}, ${sequenceNo}, ${dreamtOn}, ${CAPTURE_METHOD}, ${rawTranscript})
     RETURNING id
   `) as Array<{ id: string }>;
+
+  // Title lives in its own table (editable; not part of the immutable dream).
+  if (titleResult && !("error" in got)) {
+    await sql`
+      INSERT INTO dream_titles (dream_id, title, source)
+      VALUES (${dream.id}, ${titleResult.title}, 'generated')
+      ON CONFLICT (dream_id) DO NOTHING
+    `;
+    await sql`
+      INSERT INTO usage_events (user_id, kind, input_tokens, output_tokens)
+      VALUES (${userId}, 'title', ${titleResult.usage.input}, ${titleResult.usage.output})
+    `;
+    await markKeyVerified(got.keyId);
+  }
 
   const [restatement] = (await sql`
     INSERT INTO restatements (dream_id, model, prompt_version, accepted)

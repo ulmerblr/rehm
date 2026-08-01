@@ -7,6 +7,7 @@ import RestatementLoop from "@/app/components/RestatementLoop";
 import Header from "@/app/components/Header";
 import DreamActions from "./DreamActions";
 import DeleteDream from "./DeleteDream";
+import EditableTitle from "./EditableTitle";
 
 export const dynamic = "force-dynamic";
 
@@ -34,9 +35,11 @@ export default async function DreamPage({
         <h1 style={{ margin: 0 }}>Dream {dream.sequenceNo}</h1>
         <Link href="/">← Dreams</Link>
       </div>
-      {dream.title && (
-        <p style={{ margin: "2px 0 0", fontSize: "1.1rem", fontWeight: 600 }}>{dream.title}</p>
-      )}
+      <EditableTitle
+        dreamId={dream.id}
+        initialTitle={dream.title}
+        isCustom={dream.titleIsCustom}
+      />
       <p className="seq">
         {dream.dreamtOn ?? "no date"}
         {dream.captureMethod ? (

@@ -50,9 +50,11 @@ export type DreamListItem = {
 export async function listDreams(userId: string): Promise<DreamListItem[]> {
   const sql = getSql();
   const rows = (await sql`
-    SELECT id, sequence_no, dreamt_on, raw_transcript, title
-    FROM dreams WHERE user_id = ${userId}
-    ORDER BY sequence_no DESC
+    SELECT d.id, d.sequence_no, d.dreamt_on, d.raw_transcript, t.title
+    FROM dreams d
+    LEFT JOIN dream_titles t ON t.dream_id = d.id
+    WHERE d.user_id = ${userId}
+    ORDER BY d.sequence_no DESC
   `) as Array<Record<string, unknown>>;
   return rows.map((r) => {
     const stored = r.title == null ? "" : String(r.title).trim();
@@ -60,8 +62,8 @@ export async function listDreams(userId: string): Promise<DreamListItem[]> {
       id: String(r.id),
       sequenceNo: toInt(r.sequence_no),
       dreamtOn: toDateStr(r.dreamt_on),
-      // Prefer the generated title; fall back to one derived from the transcript
-      // (older dreams, or captures where no key was on file / the title failed).
+      // Prefer the saved (generated or edited) title; fall back to one derived
+      // from the transcript for dreams that have no title row yet.
       title: stored || deriveTitle(r.raw_transcript as string),
     };
   });
@@ -82,14 +84,17 @@ export type Dream = {
   dreamtOn: string | null;
   captureMethod: string | null;
   rawTranscript: string;
-  title: string | null;
+  title: string;
+  titleIsCustom: boolean;
 };
 
 export async function getDream(id: string, userId: string): Promise<Dream | null> {
   const sql = getSql();
   const rows = (await sql`
-    SELECT id, sequence_no, dreamt_on, capture_method, raw_transcript, title
-    FROM dreams WHERE id = ${id} AND user_id = ${userId}
+    SELECT d.id, d.sequence_no, d.dreamt_on, d.capture_method, d.raw_transcript, t.title
+    FROM dreams d
+    LEFT JOIN dream_titles t ON t.dream_id = d.id
+    WHERE d.id = ${id} AND d.user_id = ${userId}
   `) as Array<Record<string, unknown>>;
   if (rows.length === 0) return null;
   const r = rows[0];
@@ -100,7 +105,9 @@ export async function getDream(id: string, userId: string): Promise<Dream | null
     dreamtOn: toDateStr(r.dreamt_on),
     captureMethod: r.capture_method == null ? null : String(r.capture_method),
     rawTranscript: String(r.raw_transcript),
+    // Always non-empty: the saved title, or one derived from the transcript.
     title: stored || deriveTitle(String(r.raw_transcript)),
+    titleIsCustom: stored.length > 0,
   };
 }
 
