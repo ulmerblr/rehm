@@ -110,11 +110,12 @@ export default function RecordFlow({
         </div>
       )}
 
+      {/* Only mention the button if there is one — some browsers don't have it. */}
       {dictation.keyboardMic && (
         <p className="machine" style={{ marginTop: 10 }}>
-          On a phone, tap into the box above and use the microphone key on your
-          keyboard — it handles long stretches of talking better than this button
-          does.
+          {dictation.state === "unsupported"
+            ? "To talk this in, tap into the box and use the microphone key on your keyboard."
+            : "Two ways to talk this in: the button above, or tap into the box and use the microphone key on your keyboard. If one gives you trouble, try the other."}
         </p>
       )}
 

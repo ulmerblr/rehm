@@ -7,8 +7,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
  *
  * The Web Speech API is not a local feature. In Chrome it ships your audio to a
  * remote speech service, so it can fail for reasons that have nothing to do
- * with the microphone; on iOS it is unreliable in general and worse inside a
- * home-screen app. Two rules follow from that, and they drive this whole file:
+ * with the microphone — and it needs site-level permission, which is the
+ * fragile part inside a home-screen app. When it works it works well; the
+ * handling here is about the ways it doesn't. Two rules drive the whole file:
  *
  *   1. Stopping never waits for the browser. Every previous version of this
  *      asked the recognition object to stop and let its `end` event flip the
@@ -28,14 +29,15 @@ export type DictationState = "unsupported" | "off" | "starting" | "on";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Recognition = any;
 
-const KEYBOARD_HINT = "Your keyboard's own microphone key is more reliable here.";
-
+// Messages say what went wrong and nothing else. Where to turn instead depends
+// on the device — a laptop has no microphone key to point at — so the screen
+// offers the alternative, not the error.
 const ERRORS: Record<string, string> = {
   "not-allowed":
-    "The microphone is blocked for this site. Allow it in your browser's site settings, or use your keyboard's microphone key.",
-  "service-not-allowed": `The browser refused to run speech recognition. ${KEYBOARD_HINT}`,
+    "The microphone is blocked for this site. Allow it in your browser's site settings.",
+  "service-not-allowed": "The browser refused to run speech recognition.",
   "audio-capture": "No microphone available.",
-  network: `Dictation sends audio to the browser's speech service, and it didn't answer. ${KEYBOARD_HINT}`,
+  network: "Dictation sends audio to the browser's speech service, and it didn't answer.",
   "language-not-supported": "This browser can't dictate in English here.",
 };
 
@@ -48,7 +50,7 @@ export function readSpeechError(kind: string): { fatal: boolean; message: string
   if (kind === "aborted" || kind === "no-speech") return { fatal: false, message: "" };
   return {
     fatal: true,
-    message: ERRORS[kind] ?? `Dictation stopped: ${kind || "unknown error"}. ${KEYBOARD_HINT}`,
+    message: ERRORS[kind] ?? `Dictation stopped: ${kind || "unknown error"}.`,
   };
 }
 
@@ -94,11 +96,11 @@ export function useDictation(onText: (text: string) => void) {
   useEffect(() => {
     const w = window as unknown as Record<string, unknown>;
     if (w.SpeechRecognition || w.webkitSpeechRecognition) setState("off");
-    const nav = navigator;
-    setKeyboardMic(
-      /iP(hone|ad|od)/.test(nav.userAgent) ||
-        (nav.platform === "MacIntel" && nav.maxTouchPoints > 1)
-    );
+    // Is there an on-screen keyboard to point at? A coarse pointer means a
+    // touch device, which means a keyboard with its own microphone key —
+    // true on Android as well as iOS, and false on a laptop, where suggesting
+    // one would be nonsense.
+    setKeyboardMic(window.matchMedia?.("(pointer: coarse)").matches ?? false);
   }, []);
 
   const clearTimer = () => {
@@ -194,7 +196,7 @@ export function useDictation(onText: (text: string) => void) {
       });
       if (move === "idle") return;
       if (move === "giveup") {
-        stop(`Dictation kept dropping out. ${KEYBOARD_HINT}`);
+        stop("Dictation kept dropping out.");
         return;
       }
       // Chrome ends a session on its own after a pause; pick straight back up.
@@ -208,7 +210,7 @@ export function useDictation(onText: (text: string) => void) {
       rec.start();
     } catch {
       // Thrown when a previous session is still shutting down.
-      stop(`Dictation wouldn't start. ${KEYBOARD_HINT}`);
+      stop("Dictation wouldn't start.");
     }
   }, [stop]);
 
@@ -226,7 +228,7 @@ export function useDictation(onText: (text: string) => void) {
     // strand the button: no start, no end, no error, nothing.
     timerRef.current = setTimeout(() => {
       if (!liveRef.current) {
-        stop(`Dictation didn't start — the microphone may be blocked. ${KEYBOARD_HINT}`);
+        stop("Dictation didn't start — the microphone may be blocked.");
       }
     }, START_TIMEOUT_MS);
   }, [spawn, state, stop, teardown]);
@@ -251,7 +253,7 @@ export function useDictation(onText: (text: string) => void) {
     interim,
     /** A plain sentence about why it stopped, or null. */
     note,
-    /** True on iOS, where the keyboard's microphone key is the better path. */
+    /** True on touch devices, where the keyboard has its own microphone key. */
     keyboardMic,
     toggle,
     stop,
