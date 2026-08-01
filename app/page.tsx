@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireUserId } from "@/lib/session";
+import { requireOnboarded } from "@/lib/session";
 import { listDreams } from "@/lib/queries";
 import { buildCorpus, formatDayShort } from "@/lib/corpus";
 import { resolveView } from "@/lib/viewLang";
@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 // months. So the dashboard reports the shape of the record — when it was fed,
 // and where the silences are — before anything derived from it.
 export default async function Home() {
-  const userId = await requireUserId();
+  const userId = await requireOnboarded();
   const view = await resolveView(userId);
   const t = view.t;
   const dreams = await listDreams(userId);
@@ -34,6 +34,12 @@ export default async function Home() {
 
   return (
     <main>
+      {!view.hasKey && (
+        <Link href="/settings" className="notice" style={{ display: "block", marginBottom: 18 }}>
+          {t.needAKey}
+        </Link>
+      )}
+
       <Link href="/record" className="btn btn-primary btn-block btn-lg">
         {t.recordADream}
       </Link>

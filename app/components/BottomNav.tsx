@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 // Fixed bottom navigation. Hidden on the auth pages, which are reached without a
 // session and have nowhere to navigate to.
-const HIDE_ON = ["/login", "/signup"];
+const HIDE_ON = ["/login", "/signup", "/setup"];
 
 // Labels are passed in rather than hardcoded: the nav is a client component,
 // and the dictionary lives on the server with the resolved view language.

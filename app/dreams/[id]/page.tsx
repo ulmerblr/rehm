@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requireUserId } from "@/lib/session";
+import { requireOnboarded } from "@/lib/session";
 import { getDream, getRestatementState, getAnalyses, getAddenda } from "@/lib/queries";
 import ExportButton from "@/app/components/ExportButton";
 import RestatementLoop from "@/app/components/RestatementLoop";
@@ -18,7 +18,7 @@ export default async function DreamPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const userId = await requireUserId();
+  const userId = await requireOnboarded();
   const { id } = await params;
   const dream = await getDream(id, userId);
   if (!dream) notFound();

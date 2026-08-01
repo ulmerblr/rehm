@@ -86,7 +86,9 @@ export async function POST(req: NextRequest) {
     await sql`UPDATE invites SET used_by = ${inserted[0].id} WHERE id = ${claimedInviteId}`;
     claimedInviteId = null; // redeemed for real; nothing to give back
 
-    const res = NextResponse.redirect(new URL("/", req.url), { status: 303 });
+    // Straight to setup: language has to be settled before the first dream, and
+    // nothing generates without a key.
+    const res = NextResponse.redirect(new URL("/setup", req.url), { status: 303 });
     res.cookies.set(SESSION_COOKIE, await makeSessionValue(inserted[0].id), {
       httpOnly: true,
       secure: true,

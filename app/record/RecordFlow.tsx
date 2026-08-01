@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import RestatementLoop from "@/app/components/RestatementLoop";
 import { useDictation } from "@/lib/useDictation";
+import { isoToday } from "@/lib/scope";
 import { dict } from "@/lib/i18n";
 import type { Lang } from "@/lib/lang";
 
@@ -20,7 +21,23 @@ export default function RecordFlow({
 }) {
   const t = dict(viewLang);
   const [transcript, setTranscript] = useState("");
+
+  // `today` arrives from the server, which runs in UTC — so from late afternoon
+  // onwards in the Americas it is already tomorrow, and a dream logged before
+  // bed would be dated a day ahead. In a log whose whole point is cadence, that
+  // is a real error, not a cosmetic one.
+  //
+  // The server value is still what renders first, so hydration matches; the
+  // browser corrects it on mount, before anyone can have typed anything.
+  const [localToday, setLocalToday] = useState(today);
   const [dreamtOn, setDreamtOn] = useState(today);
+  useEffect(() => {
+    const here = isoToday();
+    if (here === today) return;
+    setLocalToday(here);
+    // Only move the field if it is still the untouched default.
+    setDreamtOn((current) => (current === today ? here : current));
+  }, [today]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ids, setIds] = useState<{ dreamId: string; restatementId: string } | null>(null);
@@ -132,7 +149,7 @@ export default function RecordFlow({
         id="dreamt_on"
         type="date"
         value={dreamtOn}
-        max={today}
+        max={localToday}
         onChange={(e) => setDreamtOn(e.target.value)}
       />
 

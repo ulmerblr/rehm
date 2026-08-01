@@ -4,28 +4,54 @@ import { getUserAnthropic } from "@/lib/keys";
 import { translateText } from "@/lib/translate";
 import { otherLang, type Lang, type SourceType } from "@/lib/lang";
 
-export type LangSettings = { language: Lang; dual: boolean };
+export type LangSettings = {
+  language: Lang;
+  dual: boolean;
+  /** Has the setup screen been answered? Not the same as "has a key". */
+  onboarded: boolean;
+  hasKey: boolean;
+};
 
 /**
- * The account's own language and whether it prepares both. Degrades to
- * English/single if migration 0018 hasn't landed yet, so every caller keeps
- * working through a deploy rather than throwing.
+ * The account's language, whether it prepares both, and whether first-run
+ * setup is done. One query, React-cached per request, because the app bar, the
+ * nav and the page body all ask.
+ *
+ * Degrades to a fully set-up English account if the columns aren't there yet,
+ * so a deploy that lands before its migration doesn't strand anyone behind a
+ * setup screen they can't get past.
  */
+// Treat an unreadable account as set up: a gate that fails closed would lock
+// people out of the app over a schema hiccup.
+const FALLBACK: LangSettings = { language: "en", dual: false, onboarded: true, hasKey: false };
+
 export const getLangSettings = cache(async function getLangSettings(
   userId: string
 ): Promise<LangSettings> {
   const sql = getSql();
   try {
     const rows = (await sql`
-      SELECT language, dual_language FROM users WHERE id = ${userId}
-    `) as Array<{ language: string; dual_language: boolean }>;
-    if (rows.length === 0) return { language: "en", dual: false };
+      SELECT u.language, u.dual_language, u.onboarded_at,
+             EXISTS (
+               SELECT 1 FROM user_api_keys k
+               WHERE k.user_id = u.id AND k.status = 'active'
+             ) AS has_key
+      FROM users u WHERE u.id = ${userId}
+    `) as Array<{
+      language: string;
+      dual_language: boolean;
+      onboarded_at: unknown;
+      has_key: boolean;
+    }>;
+    if (rows.length === 0) return FALLBACK;
     return {
       language: rows[0].language === "es" ? "es" : "en",
       dual: Boolean(rows[0].dual_language),
+      onboarded: rows[0].onboarded_at != null,
+      hasKey: Boolean(rows[0].has_key),
     };
   } catch {
-    return { language: "en", dual: false };
+    return FALLBACK;
   }
 });
 

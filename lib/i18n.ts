@@ -236,6 +236,20 @@ export type Dict = {
   used: (when: string) => string;
   revoked: string;
   revoke: string;
+
+  // First-run setup
+  setupTitle: string;
+  setupLead: string;
+  setupPickLanguage: string;
+  setupLanguageWhy: string;
+  setupKey: string;
+  setupKeyWhy: string;
+  setupKeyHow: string;
+  setupBothLanguages: string;
+  setupContinue: string;
+  setupContinueNoKey: string;
+  setupKeySaved: string;
+  needAKey: string;
 };
 
 const en: Dict = {
@@ -471,6 +485,24 @@ const en: Dict = {
   used: (when) => `used ${when}`,
   revoked: "revoked",
   revoke: "revoke",
+
+  setupTitle: "Two things before you start",
+  setupLead:
+    "Both take a minute and both are hard to undo later, so they come first rather than buried in settings.",
+  setupPickLanguage: "Which language will you speak?",
+  setupLanguageWhy:
+    "This decides what gets made: what dictation listens for, and what your restatements and analyses are written in. A dream recorded in the wrong one stays that way — the transcript is kept exactly as spoken and never rewritten.",
+  setupKey: "Your Anthropic API key",
+  setupKeyWhy:
+    "Nothing generates without one — no restatement, no analysis, no trends. A dream still saves, which is the confusing part: it looks like it worked.",
+  setupKeyHow:
+    "sign in, open API keys, create one, and put a little credit on the account under billing. Everything here is billed there, to you.",
+  setupBothLanguages:
+    "Also prepare everything in the other language, so you can hand someone your phone and flip the whole app. Roughly 10% more on your key. You can turn this on later.",
+  setupContinue: "Start",
+  setupContinueNoKey: "Start without a key for now",
+  setupKeySaved: "Key saved and verified.",
+  needAKey: "Add your API key in settings — nothing can be generated without one.",
 };
 
 const es: Dict = {
@@ -709,6 +741,24 @@ const es: Dict = {
   used: (when) => `usada ${when}`,
   revoked: "revocada",
   revoke: "revocar",
+
+  setupTitle: "Dos cosas antes de empezar",
+  setupLead:
+    "Las dos llevan un minuto y las dos cuestan de deshacer después, así que van primero y no escondidas en los ajustes.",
+  setupPickLanguage: "¿En qué idioma vas a hablar?",
+  setupLanguageWhy:
+    "Esto decide en qué se hacen las cosas: qué escucha el dictado, y en qué se escriben tus reformulaciones y análisis. Un sueño grabado en el idioma equivocado se queda así — la transcripción se guarda tal como la dijiste y no se reescribe nunca.",
+  setupKey: "Tu clave de la API de Anthropic",
+  setupKeyWhy:
+    "Sin ella no se genera nada — ni reformulación, ni análisis, ni patrones. El sueño se guarda igual, que es lo confuso: parece que funcionó.",
+  setupKeyHow:
+    "entra, abre API keys, crea una, y pon algo de saldo en la cuenta desde billing. Todo lo de aquí se cobra allí, a ti.",
+  setupBothLanguages:
+    "Preparar también todo en el otro idioma, para poder pasarle el teléfono a alguien y cambiar la app entera. Cuesta alrededor de un 10% más en tu clave. Puedes activarlo más adelante.",
+  setupContinue: "Empezar",
+  setupContinueNoKey: "Empezar sin clave por ahora",
+  setupKeySaved: "Clave guardada y comprobada.",
+  needAKey: "Añade tu clave de la API en los ajustes — sin ella no se puede generar nada.",
 };
 
 const DICTS: Record<Lang, Dict> = { en, es };

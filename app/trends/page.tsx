@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireUserId } from "@/lib/session";
+import { requireOnboarded } from "@/lib/session";
 import { listTrendRuns, listDreamDates, listDreams, type TrendRun } from "@/lib/queries";
 import { formatDreamNumbers } from "@/lib/scope";
 import ExportButton from "@/app/components/ExportButton";
@@ -10,7 +10,7 @@ import { loadTranslations, display } from "@/lib/translations";
 export const dynamic = "force-dynamic";
 
 export default async function Trends() {
-  const userId = await requireUserId();
+  const userId = await requireOnboarded();
   const [runs, dreams, dreamList] = await Promise.all([
     listTrendRuns(userId),
     listDreamDates(userId),

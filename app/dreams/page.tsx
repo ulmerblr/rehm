@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireUserId } from "@/lib/session";
+import { requireOnboarded } from "@/lib/session";
 import { listDreams } from "@/lib/queries";
 import AnalyzeInline from "@/app/components/AnalyzeInline";
 import { resolveView } from "@/lib/viewLang";
@@ -14,7 +14,7 @@ export default async function DreamLog({
 }: {
   searchParams: Promise<{ show?: string }>;
 }) {
-  const userId = await requireUserId();
+  const userId = await requireOnboarded();
   const view = await resolveView(userId);
   const t = view.t;
   const { show } = await searchParams;
