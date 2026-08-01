@@ -43,7 +43,7 @@ export default function DeleteDream({
   }
 
   return (
-    <div className="card" style={{ borderColor: "var(--danger)" }}>
+    <div className="notice">
       <p style={{ marginTop: 0 }}>
         Permanently delete <strong>Dream {sequenceNo}</strong>? This destroys its
         raw transcript, its restatement and the whole loop, every analysis, and

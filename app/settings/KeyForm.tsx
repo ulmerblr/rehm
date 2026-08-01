@@ -62,7 +62,7 @@ export default function KeyForm({ hasKey }: { hasKey: boolean }) {
         />
       </div>
       {error && <p className="notice">{error}</p>}
-      {ok && <p className="muted" style={{ color: "var(--ok)" }}>{ok}</p>}
+      {ok && <p className="stamp">{ok}</p>}
       <button className="btn btn-primary btn-lg" onClick={save} disabled={busy}>
         {busy ? "Verifying…" : hasKey ? "Replace key" : "Save key"}
       </button>

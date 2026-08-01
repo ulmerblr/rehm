@@ -133,8 +133,8 @@ export default function TrendRunner({
   const canRun = inScope.length > 0 && !busy;
 
   return (
-    <div className="card" style={{ margin: 0 }}>
-      <div className="seq" style={{ marginBottom: 8 }}>Read</div>
+    <div className="panel">
+      <div className="stamp" style={{ marginBottom: 8 }}>Read</div>
       <div className="segmented">
         {(
           [
@@ -160,7 +160,7 @@ export default function TrendRunner({
             : `Also reads each dream's latest analysis (${analyzedCount} analyzed). Richer, but it can find patterns in its own earlier readings.`}
       </p>
 
-      <div className="seq" style={{ margin: "18px 0 8px" }}>Scope</div>
+      <div className="stamp" style={{ margin: "22px 0 8px" }}>Scope</div>
 
       <div className="segmented">
         {(
@@ -192,7 +192,7 @@ export default function TrendRunner({
             −
           </button>
           <div style={{ minWidth: 92, textAlign: "center" }}>
-            <div className="metric">{lastN}</div>
+            <div className="run-corpus">{lastN}</div>
             <div className="muted" style={{ fontSize: "0.8rem" }}>
               dream{lastN === 1 ? "" : "s"}
             </div>

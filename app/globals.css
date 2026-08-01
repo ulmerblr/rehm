@@ -1,18 +1,42 @@
+/* rehm — a study instrument.
+ *
+ * The one idea this design carries: provenance is legible without a label.
+ * Testimony (what the dreamer said) is warm, serif, large, generously led.
+ * Machine-derived text is cool, sans, smaller, tighter. Measurements and
+ * provenance stamps are mono. Once you've seen it, you always know which layer
+ * you're reading.
+ *
+ * Every value below derives from the tokens. Nothing ad-hoc. */
+
 :root {
-  --bg: #0b0b0c;
-  --surface: #161618;
-  --surface-2: #202023;
-  --border: #34343a;
-  --text: #f4f4f5;
-  --muted: #a1a1aa;
-  --accent: #e0b155;
-  --accent-text: #0b0b0c;
-  --danger: #e5674f;
-  --ok: #6fce8f;
-  --warn: #d9a441;
+  /* Surface — warm near-black; this is read at 6am in a dark room. */
+  --ink: #0c0a09;
+  --ink-raised: #16120f;
+  --rule: #2a2320;
+
+  /* The dreamer's own voice. */
+  --said: #f0e9df;
+  --said-dim: #9a8e82;
+
+  /* Machine-generated. Deliberately cooler and quieter than --said. */
+  --machine: #a8b4c0;
+  --machine-dim: #6b7a8a;
+
+  /* Exactly one accent: primary action and active navigation. */
+  --brass: #c9964a;
+  /* Unresolved state only. Never decorative, never a second accent. */
+  --flag: #b4694a;
+
+  --font-said-stack: var(--font-said), Georgia, "Times New Roman", serif;
+  --font-ui-stack: var(--font-ui), "Helvetica Neue", Arial, sans-serif;
+  --font-data-stack: var(--font-data), ui-monospace, "SF Mono", Menlo, monospace;
+
+  --measure: 34rem;
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -22,46 +46,113 @@ html {
 
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif;
-  font-size: 19px;
-  line-height: 1.5;
+  background: var(--ink);
+  color: var(--said);
+  font-family: var(--font-ui-stack);
+  font-size: 15px;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 
 .container {
-  max-width: 680px;
+  max-width: 44rem;
   margin: 0 auto;
-  /* Bottom padding clears the fixed nav plus the home indicator. */
-  padding: 20px 20px calc(96px + env(safe-area-inset-bottom));
+  padding: 22px 20px calc(104px + env(safe-area-inset-bottom));
 }
 
-/* A page's own title sits directly under the bar with no doubled gap. */
-main > h1:first-child,
-main > .row:first-child {
-  margin-top: 0;
+/* ---- Type roles -------------------------------------------------------- */
+
+/* Testimony. The dreamer's words, at reading size. */
+.said {
+  font-family: var(--font-said-stack);
+  font-weight: 400;
+  font-size: 1.1875rem; /* 19 */
+  line-height: 1.58; /* 30 */
+  color: var(--said);
+  max-width: var(--measure);
 }
 
-a {
-  color: var(--accent);
-  text-underline-offset: 3px;
+.said-title {
+  font-family: var(--font-said-stack);
+  font-weight: 600;
+  font-size: 1.75rem; /* 28 */
+  line-height: 1.14; /* 32 */
+  color: var(--said);
+  letter-spacing: -0.005em;
 }
 
+/* Machine-derived prose. Cooler, smaller, tighter. */
+.machine {
+  font-family: var(--font-ui-stack);
+  font-weight: 400;
+  font-size: 0.9375rem; /* 15 */
+  line-height: 1.6; /* 24 */
+  color: var(--machine);
+  max-width: var(--measure);
+}
+
+/* Interface labels. */
+.label {
+  font-family: var(--font-ui-stack);
+  font-weight: 500;
+  font-size: 0.8125rem; /* 13 */
+  line-height: 1.23; /* 16 */
+  color: var(--said-dim);
+}
+
+/* Measurements and provenance stamps. */
+.stamp {
+  font-family: var(--font-data-stack);
+  font-weight: 400;
+  font-size: 0.6875rem; /* 11 */
+  line-height: 1.27; /* 14 */
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--said-dim);
+}
+
+.stamp-machine {
+  color: var(--machine-dim);
+}
+
+.stamp-flag {
+  color: var(--flag);
+}
+
+/* Headings are UI, not testimony. */
 h1 {
-  font-size: 1.7rem;
+  font-family: var(--font-ui-stack);
+  font-size: 1.25rem;
+  font-weight: 600;
   line-height: 1.2;
-  margin: 0 0 4px;
+  letter-spacing: -0.01em;
+  margin: 0 0 18px;
+  color: var(--said);
 }
 
 h2 {
-  font-size: 1.15rem;
-  margin: 28px 0 10px;
+  font-family: var(--font-data-stack);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--said-dim);
+  margin: 34px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--rule);
+}
+
+p {
+  margin: 0 0 14px;
+}
+
+a {
+  color: var(--brass);
+  text-underline-offset: 3px;
 }
 
 .muted {
-  color: var(--muted);
+  color: var(--said-dim);
 }
 
 .row {
@@ -71,43 +162,55 @@ h2 {
   flex-wrap: wrap;
 }
 
-/* Buttons — large tap targets, one-handed. */
+.stack > * + * {
+  margin-top: 14px;
+}
+
+/* ---- Controls ---------------------------------------------------------- */
+
 .btn,
 button.btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 56px;
-  padding: 0 22px;
-  font-size: 1.05rem;
+  min-height: 48px;
+  padding: 0 20px;
+  font-family: var(--font-ui-stack);
+  font-size: 0.8125rem;
   font-weight: 600;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text);
+  letter-spacing: 0.02em;
+  border-radius: 4px;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--said);
   cursor: pointer;
   text-decoration: none;
-  transition: filter 0.12s ease;
+  transition: border-color 0.12s ease, color 0.12s ease;
 }
 
-.btn:active {
-  filter: brightness(1.2);
+.btn:hover {
+  border-color: var(--said-dim);
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.42;
   cursor: default;
 }
 
 .btn-primary {
-  background: var(--accent);
-  color: var(--accent-text);
-  border-color: var(--accent);
+  background: var(--brass);
+  border-color: var(--brass);
+  color: var(--ink);
+}
+
+.btn-primary:hover {
+  border-color: var(--brass);
+  filter: brightness(1.06);
 }
 
 .btn-danger {
-  border-color: var(--danger);
-  color: var(--danger);
+  border-color: var(--flag);
+  color: var(--flag);
 }
 
 .btn-block {
@@ -115,315 +218,92 @@ button.btn {
 }
 
 .btn-lg {
-  min-height: 64px;
-  font-size: 1.15rem;
+  min-height: 54px;
 }
 
-/* Cards */
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 18px;
-  margin: 14px 0;
+.btn-sm {
+  min-height: 38px;
+  padding: 0 12px;
+  font-size: 0.75rem;
 }
 
-.card-link {
-  display: block;
-  text-decoration: none;
+/* A control that reads as text. */
+.linklike {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
   color: inherit;
-}
-
-.card-link:active {
-  filter: brightness(1.3);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* Form controls */
 textarea,
+input[type="text"],
 input[type="password"],
-input[type="text"] {
+input[type="email"],
+input[type="date"] {
   width: 100%;
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 14px;
-  font: inherit;
-  resize: vertical;
-}
-
-textarea {
-  min-height: 220px;
+  background: var(--ink-raised);
+  color: var(--said);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 12px 14px;
+  font-family: var(--font-ui-stack);
+  font-size: 0.9375rem;
   line-height: 1.5;
 }
 
+textarea {
+  min-height: 200px;
+  font-family: var(--font-said-stack);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+}
+
 input[type="date"] {
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px 14px;
-  font: inherit;
+  font-family: var(--font-data-stack);
+  font-size: 0.8125rem;
 }
 
 label {
   display: block;
-  margin: 16px 0 6px;
-  color: var(--muted);
-  font-size: 0.95rem;
+  margin: 18px 0 6px;
+  font-family: var(--font-ui-stack);
+  font-weight: 500;
+  font-size: 0.8125rem;
+  color: var(--said-dim);
 }
 
-/* Preserve verbatim transcript formatting. */
-.verbatim {
-  white-space: pre-wrap;
-  word-break: break-word;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px;
-  font-size: 1.02rem;
+::placeholder {
+  color: var(--said-dim);
+  opacity: 0.7;
 }
 
-.seq {
-  font-variant-numeric: tabular-nums;
-  color: var(--muted);
-  font-size: 0.9rem;
+/* Visible focus everywhere, never removed. */
+:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
-.stack > * + * {
-  margin-top: 12px;
-}
+/* ---- Chrome ------------------------------------------------------------ */
 
-details {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 4px 14px;
-  background: var(--surface);
-}
-
-summary {
-  cursor: pointer;
-  padding: 12px 0;
-  font-weight: 600;
-}
-
-.tag {
-  display: inline-block;
-  font-size: 0.8rem;
-  color: var(--muted);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 2px 10px;
-  margin-right: 6px;
-}
-
-/* Status line: a small dot and a word. No box, no button — it sits beside the
-   dream's meta without competing with the title. */
-.status {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.85rem;
-  white-space: nowrap;
-}
-
-.status::before {
-  content: "";
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: currentColor;
-  flex: none;
-}
-
-.status-ok {
-  color: var(--ok);
-}
-
-.status-warn {
-  color: var(--warn);
-}
-
-.status-bad {
-  color: var(--danger);
-}
-
-/* Meta row under a dream: sequence + date on the left, status on the right. */
-.dream-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: 8px;
-}
-
-.notice {
-  border: 1px solid var(--danger);
-  color: var(--danger);
-  border-radius: 12px;
-  padding: 12px 14px;
-}
-
-/* Initials avatar */
-.avatar {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  color: #fff;
-  font-weight: 700;
-  line-height: 1;
-  flex: none;
-  letter-spacing: 0.02em;
-}
-
-/* Signed-in chip in the header (avatar + username, links to settings) */
-.profile-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  text-decoration: none;
-  color: var(--text);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 4px 12px 4px 4px;
-  max-width: 52vw;
-}
-
-.profile-chip:active {
-  filter: brightness(1.2);
-}
-
-.profile-chip-name {
-  font-size: 0.92rem;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Section header row with a little more breathing room above it */
-.section-head {
-  margin-top: 30px;
-}
-
-/* Big number for the usage panel */
-.metric {
-  font-size: 1.5rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-}
-
-/* Dream list rows — compact; the title never wraps past one line. */
-.dream-row {
-  padding: 14px 16px;
-}
-
-/* Sized so a 30-character title (the generated cap) fits whole on a phone.
-   The clamp stays as a safety net for long hand-typed titles. */
-.dream-title {
-  font-size: 1.05rem;
-  font-weight: 700;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Opening words of the transcript — exactly one line, never wraps. */
-.dream-snippet {
-  margin-top: 2px;
-  color: var(--muted);
-  font-size: 0.95rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Something remembered after capture — visibly attached to the transcript
-   rather than part of it. */
-.addendum {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-left: 3px solid var(--accent);
-  border-radius: 0 12px 12px 0;
-  padding: 12px 14px;
-}
-
-/* Collapsed trend run: dream numbers + date, expanding to the full run. */
-.run {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 0 16px;
-}
-
-.run > summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 0;
-  font-weight: 400;
-  list-style: none;
-}
-
-.run > summary::-webkit-details-marker {
-  display: none;
-}
-
-/* Chevron that rotates when the run is open. */
-.run > summary::after {
-  content: "›";
-  color: var(--muted);
-  font-size: 1.4rem;
-  line-height: 1;
-  transition: transform 0.15s ease;
-}
-
-.run[open] > summary::after {
-  transform: rotate(90deg);
-}
-
-.run-dreams {
-  font-size: 1.05rem;
-  font-weight: 700;
-}
-
-.run-body {
-  padding-bottom: 16px;
-  border-top: 1px solid var(--border);
-  padding-top: 14px;
-}
-
-/* The closing synthesis — set apart so the run ends on something, rather than
-   trailing off after the last claim. */
-.closing {
-  margin-top: 18px;
-  padding: 14px 16px;
-  background: var(--surface-2);
-  border-left: 3px solid var(--accent);
-  border-radius: 0 12px 12px 0;
-}
-
-/* Top app bar — present on every signed-in page. Sticky with its own surface
-   and a hairline, so content scrolls *under* a defined edge instead of the
-   wordmark dissolving into the page. */
 .app-bar {
   position: sticky;
   top: 0;
   z-index: 30;
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
-  backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--border);
+  background: var(--ink);
+  border-bottom: 1px solid var(--rule);
 }
 
 .app-bar-inner {
-  max-width: 680px;
+  max-width: 44rem;
   margin: 0 auto;
-  min-height: 56px;
+  min-height: 52px;
   padding: 8px 20px;
   display: flex;
   align-items: center;
@@ -431,27 +311,39 @@ summary {
   gap: 12px;
 }
 
+/* The wordmark is masked so it takes the testimony color rather than pure
+   white — it belongs to the dreamer's side of the palette. */
 .app-bar-mark {
   display: block;
-  line-height: 0;
+  width: 64px;
+  height: 19px;
+  background: var(--said);
+  -webkit-mask: url(/wordmark-mono.svg) no-repeat center / contain;
+  mask: url(/wordmark-mono.svg) no-repeat center / contain;
 }
 
-.app-bar-mark img {
-  height: 20px;
-  display: block;
+.who {
+  font-family: var(--font-data-stack);
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--said-dim);
+  text-decoration: none;
 }
 
-/* Bottom navigation — fixed, thumb-reachable, clear of the home indicator. */
+.who:hover {
+  color: var(--said);
+}
+
 .bottom-nav {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 20;
+  z-index: 30;
   display: flex;
-  background: color-mix(in srgb, var(--bg) 92%, transparent);
-  backdrop-filter: blur(12px);
-  border-top: 1px solid var(--border);
+  background: var(--ink);
+  border-top: 1px solid var(--rule);
   padding-bottom: env(safe-area-inset-bottom);
 }
 
@@ -461,157 +353,333 @@ summary {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  min-height: 58px;
+  gap: 4px;
+  min-height: 56px;
   padding: 8px 4px;
-  color: var(--muted);
+  color: var(--said-dim);
   text-decoration: none;
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  font-family: var(--font-ui-stack);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
 }
 
 .nav-tab-on {
-  color: var(--accent);
+  color: var(--brass);
 }
 
-.nav-tab:active {
-  filter: brightness(1.3);
-}
+/* ---- The log ----------------------------------------------------------- */
 
-/* The one figure a view leads with. Proportional figures, not tabular — at
-   display size, tabular digits read loose. */
-.hero {
-  text-align: center;
-  padding: 4px 0 6px;
-}
-
-.hero-figure {
-  font-size: 3.4rem;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.02em;
-}
-
-/* Supporting stat tiles: label above, value below, no boxes competing with the
-   hero. */
-.stat-row {
+/* Sequence numbers are the structural device: the study depends on ordering,
+   so the ordinal sits in the left margin at size, in mono. */
+.log-row {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  margin-top: 22px;
+  grid-template-columns: 2.6rem 1fr;
+  gap: 16px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--rule);
+  text-decoration: none;
+  color: inherit;
 }
 
-.stat {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 14px 16px;
-}
-
-.stat-label {
-  color: var(--muted);
-  font-size: 0.82rem;
-  margin-bottom: 4px;
-}
-
-.stat-value {
-  font-size: 1.5rem;
-  font-weight: 600;
-  line-height: 1.1;
-}
-
-.stat-of {
-  color: var(--muted);
-  font-size: 0.95rem;
+.log-seq {
+  font-family: var(--font-data-stack);
+  font-size: 1.375rem;
   font-weight: 400;
+  line-height: 1.1;
+  color: var(--said-dim);
+  padding-top: 2px;
 }
 
-/* A nudge row: status on the left, where it leads on the right. */
-.nudge {
+.log-title {
+  font-family: var(--font-said-stack);
+  font-weight: 600;
+  font-size: 1.1875rem;
+  line-height: 1.3;
+  color: var(--said);
+}
+
+.log-excerpt {
+  font-family: var(--font-said-stack);
+  font-weight: 400;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--said-dim);
+  margin-top: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.log-meta {
   display: flex;
-  align-items: center;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+/* ---- Home -------------------------------------------------------------- */
+
+.lede-seq {
+  font-family: var(--font-data-stack);
+  font-size: 2.75rem;
+  line-height: 1;
+  color: var(--said-dim);
+  display: block;
+  margin-bottom: 12px;
+}
+
+.lede-excerpt {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 14px;
+}
+
+/* One line of measurements. */
+.ledger {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  padding-top: 16px;
+  margin-top: 26px;
+  border-top: 1px solid var(--rule);
+}
+
+/* ---- Provenance blocks ------------------------------------------------- */
+
+/* Testimony sits unadorned — no box, no border. It is the document. */
+.testimony {
+  font-family: var(--font-said-stack);
+  font-weight: 400;
+  font-size: 1.1875rem;
+  line-height: 1.58;
+  color: var(--said);
+  max-width: var(--measure);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Machine output is inset behind a rule: subordinate to the testimony above. */
+.derived {
+  border-left: 1px solid var(--rule);
+  padding-left: 16px;
+  max-width: var(--measure);
+}
+
+.derived .machine {
+  white-space: pre-wrap;
+}
+
+/* Loop turns read as two voices, because they are. */
+.turn-said {
+  font-family: var(--font-said-stack);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  color: var(--said);
+  white-space: pre-wrap;
+  max-width: var(--measure);
+}
+
+.turn-machine {
+  font-family: var(--font-ui-stack);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--machine);
+  white-space: pre-wrap;
+  border-left: 1px solid var(--rule);
+  padding-left: 16px;
+  max-width: var(--measure);
+}
+
+/* An addition made after capture — testimony, marked by when it surfaced. */
+.addendum {
+  border-left: 1px solid var(--rule);
+  padding-left: 16px;
+}
+
+/* ---- Trends ------------------------------------------------------------ */
+
+.claim {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* Citations are mono chips — they point at real, numbered dreams. */
+.cite {
+  display: inline-block;
+  font-family: var(--font-data-stack);
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  color: var(--machine-dim);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 2px 7px;
+  margin: 6px 6px 0 0;
+  text-decoration: none;
+}
+
+.cite:hover {
+  color: var(--machine);
+  border-color: var(--machine-dim);
+}
+
+.closing {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+}
+
+.run {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.run > summary {
+  display: flex;
+  align-items: baseline;
   justify-content: space-between;
   gap: 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.run > summary::-webkit-details-marker {
+  display: none;
+}
+
+.run-corpus {
+  font-family: var(--font-data-stack);
+  font-size: 1rem;
+  letter-spacing: 0.03em;
+  color: var(--said);
+  text-transform: uppercase;
+}
+
+.run-body {
   margin-top: 18px;
 }
 
-/* Batch progress for a queued trend pass. */
+/* Interactive panel — the one place a raised surface is warranted. */
+.panel {
+  background: var(--ink-raised);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 16px;
+}
+
+.segmented {
+  display: flex;
+  gap: 2px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.segment {
+  flex: 1;
+  min-height: 40px;
+  padding: 0 8px;
+  font-family: var(--font-ui-stack);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--said-dim);
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.segment-on {
+  background: var(--ink);
+  color: var(--said);
+}
+
+.stepper {
+  min-width: 48px;
+  padding: 0;
+  font-size: 1.25rem;
+}
+
 .progress-track {
-  height: 6px;
-  border-radius: 999px;
-  background: var(--bg);
-  border: 1px solid var(--border);
+  height: 2px;
+  background: var(--rule);
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background: var(--accent);
-  border-radius: 999px;
+  background: var(--brass);
   transition: width 0.25s ease;
 }
 
-/* Segmented control — mutually exclusive choices in one row. */
-.segmented {
-  display: flex;
-  gap: 4px;
-  padding: 4px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+.notice {
+  border-left: 2px solid var(--flag);
+  padding: 10px 0 10px 14px;
+  color: var(--flag);
+  font-size: 0.875rem;
 }
 
-.segment {
-  flex: 1;
-  min-height: 44px;
-  padding: 0 10px;
-  font: inherit;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--muted);
-  background: transparent;
-  border: none;
-  border-radius: 9px;
-  cursor: pointer;
-}
-
-.segment-on {
-  background: var(--surface-2);
-  color: var(--text);
-}
-
-.segment:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-/* Square +/- buttons for the "last N dreams" stepper. */
-.stepper {
-  min-width: 56px;
-  padding: 0;
-  font-size: 1.4rem;
-  line-height: 1;
-}
-
-/* Compact button for inline presets. */
-.btn-sm {
-  min-height: 40px;
-  padding: 0 14px;
-  font-size: 0.9rem;
-  border-radius: 10px;
-}
-
-/* A button that reads as a text link (e.g. inline "Edit" / "Rename"). */
-.linklike {
+/* Legacy container class — content is never in a rounded card. */
+.card {
   background: none;
   border: none;
+  border-radius: 0;
   padding: 0;
-  margin: 0;
-  color: var(--accent);
-  font: inherit;
-  font-size: 0.9rem;
+  margin: 14px 0;
+}
+
+.card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+details.run,
+details {
+  background: none;
+}
+
+summary {
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+}
+
+/* ---- Motion ------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---- Narrow ------------------------------------------------------------ */
+
+@media (max-width: 400px) {
+  .container {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .log-row {
+    grid-template-columns: 2.1rem 1fr;
+    gap: 12px;
+  }
+  .log-seq {
+    font-size: 1.125rem;
+  }
+  .lede-seq {
+    font-size: 2.25rem;
+  }
+  .said-title {
+    font-size: 1.5rem;
+  }
 }

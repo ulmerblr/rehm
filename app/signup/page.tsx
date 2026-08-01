@@ -17,10 +17,20 @@ export default async function Signup({
   return (
     <main>
       <div style={{ textAlign: "center", margin: "24px 0 28px" }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/wordmark-light.svg" alt="rehm" style={{ height: 44, display: "inline-block" }} />
+        <span
+          role="img"
+          aria-label="rehm"
+          style={{
+            display: "inline-block",
+            width: 148,
+            height: 44,
+            background: "var(--said)",
+            WebkitMask: "url(/wordmark-mono.svg) no-repeat center / contain",
+            mask: "url(/wordmark-mono.svg) no-repeat center / contain",
+          }}
+        />
       </div>
-      <p className="muted">Create an account. Invite only.</p>
+      <p className="machine">Create an account. Invite only.</p>
 
       <p style={{ lineHeight: 1.5 }}>
         Sign-up requires your own LLM API key. Those API calls are billed to your own account. There

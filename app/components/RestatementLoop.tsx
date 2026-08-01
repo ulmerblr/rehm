@@ -92,7 +92,7 @@ export default function RestatementLoop({
 
   return (
     <div>
-      <div className="verbatim">{busy && !disagreeing ? "Thinking…" : proposal}</div>
+      <div className="turn-machine">{busy && !disagreeing ? "Thinking…" : proposal}</div>
       {error && <p className="notice" style={{ marginTop: 14 }}>{error}</p>}
 
       {!disagreeing ? (

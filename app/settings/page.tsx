@@ -1,7 +1,5 @@
-import Link from "next/link";
 import { requireUserId } from "@/lib/session";
 import { getActiveKeyInfo, getTokenTotal, getUserEmail } from "@/lib/queries";
-import Avatar from "@/app/components/Avatar";
 import KeyForm from "./KeyForm";
 import MigrateButton from "./MigrateButton";
 
@@ -17,77 +15,64 @@ export default async function Settings() {
 
   return (
     <main>
-      <h1 style={{ margin: 0 }}>Settings</h1>
+      <h1>Settings</h1>
 
-      {/* Profile — who you're signed in as. */}
-      <div className="card row" style={{ gap: 14 }}>
-        {email && <Avatar email={email} size={44} />}
-        <div>
-          <div style={{ fontWeight: 600 }}>{email ? email.split("@")[0] : "Account"}</div>
-          {email && <div className="muted" style={{ fontSize: "0.9rem" }}>{email}</div>}
-        </div>
-      </div>
+      <div className="stamp">{email ?? "account"}</div>
 
-      {/* Usage — real money spent on your key; kept even if a dream is deleted. */}
       <h2>Usage</h2>
-      <div className="card" style={{ marginTop: 0 }}>
-        <div className="row" style={{ gap: 24 }}>
-          <div>
-            <div className="metric">{tokens.input.toLocaleString()}</div>
-            <div className="muted" style={{ fontSize: "0.85rem" }}>input tokens</div>
-          </div>
-          <div>
-            <div className="metric">{tokens.output.toLocaleString()}</div>
-            <div className="muted" style={{ fontSize: "0.85rem" }}>output tokens</div>
+      <div className="row" style={{ gap: 28, alignItems: "baseline" }}>
+        <div>
+          <div className="run-corpus">{tokens.input.toLocaleString()}</div>
+          <div className="stamp stamp-machine" style={{ marginTop: 4 }}>
+            input tokens
           </div>
         </div>
-        <p className="muted" style={{ fontSize: "0.9rem", margin: "12px 0 0" }}>
-          Lifetime total across your restatements, analyses, and trend runs. This is a
-          permanent record of what your key was billed — deleting a dream does not reduce it.
-        </p>
+        <div>
+          <div className="run-corpus">{tokens.output.toLocaleString()}</div>
+          <div className="stamp stamp-machine" style={{ marginTop: 4 }}>
+            output tokens
+          </div>
+        </div>
       </div>
+      <p className="machine" style={{ marginTop: 14 }}>
+        Lifetime total across restatements, analyses, and trend passes. This is what
+        your key was billed — deleting a dream does not reduce it.
+      </p>
 
-      {/* API key — needed to generate anything, but not the first thing you see. */}
       <h2>Anthropic API key</h2>
       {key ? (
-        <div className="card" style={{ marginTop: 0 }}>
-          <div>
-            {key.label && <span className="tag">{key.label}</span>}
-            <span className="tag">ends {key.lastFour}</span>
-          </div>
-          <div className="muted" style={{ marginTop: 6 }}>
-            {key.lastVerifiedAt ? `Last worked: ${key.lastVerifiedAt}` : "Not yet used."}
-          </div>
+        <div className="stamp" style={{ marginBottom: 14 }}>
+          {key.label ? `${key.label} · ` : ""}ends {key.lastFour} ·{" "}
+          {key.lastVerifiedAt ? `last worked ${key.lastVerifiedAt.slice(0, 10)}` : "not yet used"}
         </div>
       ) : (
-        <p className="muted">
+        <p className="machine" style={{ marginTop: 0 }}>
           No key on file. Add one to generate restatements, analyses, and trends.
         </p>
       )}
-      <div style={{ marginTop: 12 }}>
-        <KeyForm hasKey={!!key} />
-      </div>
+      <KeyForm hasKey={!!key} />
 
       <h2>Getting a key</h2>
-      <p className="muted" style={{ marginTop: 0 }}>
+      <p className="machine" style={{ marginTop: 0 }}>
         Create an API key at{" "}
         <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noreferrer">
           console.anthropic.com
         </a>{" "}
-        — sign in, open <strong>API Keys</strong>, and click <strong>Create Key</strong>. You&apos;ll
-        also need a little credit on that account under <strong>Billing</strong>. Calls you make in
-        rehm are billed there, to you.
+        — sign in, open API keys, create one, and put a little credit on the account
+        under billing. Calls made here are billed there, to you.
       </p>
 
       <h2>Account</h2>
-      <form method="post" action="/api/auth/logout" style={{ marginTop: 8 }}>
-        <button className="btn" type="submit">Sign out</button>
+      <form method="post" action="/api/auth/logout">
+        <button className="btn" type="submit">
+          Sign out
+        </button>
       </form>
 
       <h2>Maintenance</h2>
-      <p className="muted" style={{ marginTop: 0 }}>
-        Database migrations apply automatically on every deploy. This button is a
-        fallback — use it only if something looks off.
+      <p className="machine" style={{ marginTop: 0 }}>
+        Migrations apply automatically on deploy. This is a fallback for when
+        something looks wrong.
       </p>
       <MigrateButton />
     </main>

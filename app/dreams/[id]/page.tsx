@@ -32,65 +32,72 @@ export default async function DreamPage({
 
   return (
     <main>
-      <div className="row" style={{ justifyContent: "space-between" }}>
-        <h1 style={{ margin: 0 }}>Dream {dream.sequenceNo}</h1>
-        <Link href="/dreams">← Log</Link>
+      <div className="row" style={{ justifyContent: "space-between", marginBottom: 18 }}>
+        <span className="stamp">
+          dream {String(dream.sequenceNo).padStart(2, "0")}
+          {dream.dreamtOn ? ` · ${dream.dreamtOn}` : ""}
+          {dream.captureMethod ? ` · ${dream.captureMethod}` : ""}
+        </span>
+        <Link href="/dreams" className="stamp" style={{ textDecoration: "none" }}>
+          ← log
+        </Link>
       </div>
+
       <EditableTitle
         dreamId={dream.id}
         initialTitle={dream.title}
         isCustom={dream.titleIsCustom}
       />
-      <p className="seq">
-        {dream.dreamtOn ?? "no date"}
-        {dream.captureMethod ? (
-          <span className="tag" style={{ marginLeft: 10 }}>{dream.captureMethod}</span>
-        ) : null}
-      </p>
 
-      <h2>Raw transcript</h2>
-      <div className="verbatim">{dream.rawTranscript}</div>
+      {/* Testimony. First, largest, unadorned — it is the document. */}
+      <div className="testimony" style={{ marginTop: 22 }}>
+        {dream.rawTranscript}
+      </div>
 
-      <h2>Additions</h2>
-      <p className="muted" style={{ marginTop: 0 }}>
-        Things that came back to you later. Added to the record, never replacing it.
-      </p>
       {addenda.length > 0 && (
-        <div className="stack" style={{ marginBottom: 14 }}>
+        <div className="stack" style={{ marginTop: 26 }}>
           {addenda.map((a) => (
             <div key={a.addendumNo} className="addendum">
-              <div className="seq">
-                Added {a.capturedAt ? formatStamp(a.capturedAt) : "later"}
+              <div className="stamp" style={{ marginBottom: 6 }}>
+                added {a.capturedAt ? formatStamp(a.capturedAt) : "later"}
               </div>
-              <div style={{ whiteSpace: "pre-wrap", marginTop: 4 }}>{a.body}</div>
+              <div className="testimony">{a.body}</div>
             </div>
           ))}
         </div>
       )}
-      <AddAddendum dreamId={dream.id} />
+
+      <div style={{ marginTop: 22 }}>
+        <AddAddendum dreamId={dream.id} />
+      </div>
 
       <h2>Restatement</h2>
       {restatement && restatement.accepted ? (
         <>
-          <div className="card">
-            <div>
-              <span className="tag">model: {restatement.model}</span>
-              <span className="tag">prompt: {restatement.promptVersion}</span>
+          <div className="derived">
+            <div className="stamp stamp-machine" style={{ marginBottom: 8 }}>
+              {restatement.model} · {restatement.promptVersion} · accepted
             </div>
-            <p style={{ whiteSpace: "pre-wrap", marginBottom: 0 }}>
+            <div className="machine" style={{ whiteSpace: "pre-wrap" }}>
               {restatement.latestProposal}
-            </p>
+            </div>
           </div>
+
           {restatement.turns.length > 0 && (
-            <details style={{ marginTop: 12 }}>
-              <summary>Loop turns ({restatement.turns.length})</summary>
-              <div className="stack" style={{ padding: "8px 0 14px" }}>
+            <details style={{ marginTop: 18 }}>
+              <summary className="stamp">{restatement.turns.length} loop turns</summary>
+              <div className="stack" style={{ marginTop: 14 }}>
                 {restatement.turns.map((t) => (
                   <div key={t.turnNo}>
-                    <div className="seq">
-                      {t.turnNo}. {t.role === "proposal" ? "Proposal" : "Objection"}
+                    <div
+                      className={t.role === "objection" ? "stamp" : "stamp stamp-machine"}
+                      style={{ marginBottom: 6 }}
+                    >
+                      {t.turnNo} · {t.role === "objection" ? "you" : "machine"}
                     </div>
-                    <div style={{ whiteSpace: "pre-wrap" }}>{t.body}</div>
+                    <div className={t.role === "objection" ? "turn-said" : "turn-machine"}>
+                      {t.body}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -99,8 +106,8 @@ export default async function DreamPage({
         </>
       ) : restatement ? (
         <>
-          <p className="muted" style={{ marginTop: 0 }}>
-            Not accepted yet — continue the loop until you agree.
+          <p className="stamp stamp-flag" style={{ marginBottom: 14 }}>
+            open — not accepted
           </p>
           <RestatementLoop
             restatementId={restatement.id}
@@ -109,38 +116,39 @@ export default async function DreamPage({
           />
         </>
       ) : (
-        <p className="muted">No restatement.</p>
+        <p className="machine">No restatement.</p>
       )}
 
       <h2>Analyses</h2>
-      <p className="muted" style={{ marginTop: 0 }}>
-        Blind — generated from the raw transcript only. Re-runnable; each run is a new row.
+      <p className="machine" style={{ marginTop: 0 }}>
+        Generated from the transcript alone. Re-runnable — each run is kept.
       </p>
       <DreamActions dreamId={dream.id} />
-      <div className="stack" style={{ marginTop: 14 }}>
+      <div className="stack" style={{ marginTop: 18 }}>
         {analyses.length === 0 ? (
-          <p className="muted">No analyses yet.</p>
+          <p className="stamp stamp-flag">not analyzed</p>
         ) : (
           analyses.map((a) => (
-            <div key={a.id} className="card">
-              <div>
-                <span className="tag">model: {a.model}</span>
-                <span className="tag">prompt: {a.promptVersion}</span>
-                <span className="tag">blind: {String(a.blind)}</span>
+            <div key={a.id} className="derived">
+              <div className="stamp stamp-machine" style={{ marginBottom: 8 }}>
+                {a.createdAt.slice(0, 10)} · {a.model} · {a.promptVersion}
+                {a.blind ? " · blind" : ""}
               </div>
-              <div className="seq">{a.createdAt}</div>
-              <p style={{ whiteSpace: "pre-wrap", marginBottom: 0 }}>{a.body}</p>
+              <div className="machine" style={{ whiteSpace: "pre-wrap" }}>
+                {a.body}
+              </div>
             </div>
           ))
         )}
       </div>
 
       <h2>Export</h2>
-      <ExportButton text={exportText} label="Copy dream as text" />
+      <ExportButton text={exportText} label="Copy as text" />
 
-      <h2 style={{ marginTop: 32, color: "var(--danger)" }}>Danger zone</h2>
-      <p className="muted" style={{ marginTop: 0 }}>
-        Deleting a dream is permanent. Consider copying it as text first.
+      <h2>Delete</h2>
+      <p className="machine" style={{ marginTop: 0 }}>
+        Permanent, and it takes the restatement, analyses, and any trend citations
+        with it. Copy the text first if you want a record.
       </p>
       <DeleteDream dreamId={dream.id} sequenceNo={dream.sequenceNo} />
     </main>

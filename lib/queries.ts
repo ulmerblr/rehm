@@ -131,6 +131,8 @@ export type DashboardStats = {
   additions: number;
   lastDream: DreamListItem | null;
   lastTrendAt: string | null;
+  lastTrendCorpus: number | null;
+  lastDreamExcerpt: string;
 };
 
 // Summary counts for the home page. Tables added by later migrations degrade to
@@ -148,6 +150,13 @@ export async function getDashboardStats(userId: string): Promise<DashboardStats>
     SELECT count(*) AS n, max(created_at) AS last_at
     FROM trend_runs WHERE user_id = ${userId}
   `) as Array<{ n: unknown; last_at: unknown }>;
+
+  // The corpus size of the most recent pass — a claim means something
+  // different at corpus 9 than at corpus 90, so the size is the version.
+  const lastRun = (await sql`
+    SELECT corpus_size FROM trend_runs WHERE user_id = ${userId}
+    ORDER BY created_at DESC LIMIT 1
+  `) as Array<{ corpus_size: unknown }>;
 
   let additions = 0;
   try {
@@ -168,6 +177,8 @@ export async function getDashboardStats(userId: string): Promise<DashboardStats>
     additions,
     lastDream: dreams[0] ?? null,
     lastTrendAt: toIso(t.last_at),
+    lastTrendCorpus: lastRun.length > 0 ? toInt(lastRun[0].corpus_size) : null,
+    lastDreamExcerpt: dreams[0]?.snippet ?? "",
   };
 }
 

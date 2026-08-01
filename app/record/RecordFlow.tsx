@@ -101,7 +101,7 @@ export default function RecordFlow({
 
   return (
     <div>
-      <p className="seq" style={{ marginTop: 14 }}>
+      <p className="stamp" style={{ marginTop: 14 }}>
         Dream {sequenceNo}
       </p>
       <label htmlFor="transcript">Talk. This is stored exactly as spoken.</label>

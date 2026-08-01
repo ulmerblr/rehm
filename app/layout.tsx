@@ -1,5 +1,28 @@
 import type { Metadata } from "next";
+import { Spectral, Archivo, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+
+// Three faces, three jobs. Provenance is encoded in type: testimony is set in
+// the serif, machine-generated prose in the sans, and anything that is a
+// measurement or a stamp in the mono.
+const spectral = Spectral({
+  subsets: ["latin"],
+  weight: ["400", "600"],
+  variable: "--font-said",
+  display: "swap",
+});
+const archivo = Archivo({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-ui",
+  display: "swap",
+});
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-data",
+  display: "swap",
+});
 import { ensureMigrated, type MigrateResult } from "@/lib/migrate";
 import BottomNav from "@/app/components/BottomNav";
 import AppBar from "@/app/components/AppBar";
@@ -58,17 +81,17 @@ function MigrationBanner({
 }) {
   return (
     <details className="notice" style={{ marginBottom: 18 }}>
-      <summary style={{ color: "var(--danger)" }}>
+      <summary className="stamp stamp-flag">
         A schema update didn&apos;t apply — tap for details
       </summary>
       <div style={{ padding: "4px 0 12px" }}>
-        <div className="seq">Failed migration</div>
+        <div className="stamp">Failed migration</div>
         <div style={{ fontWeight: 600, marginBottom: 10 }}>{file ?? "(unknown)"}</div>
-        <div className="seq">Postgres error</div>
-        <div className="verbatim" style={{ marginTop: 6, marginBottom: 10 }}>
+        <div className="stamp">Postgres error</div>
+        <div className="turn-machine" style={{ marginTop: 6, marginBottom: 10 }}>
           {error ?? "(no error text)"}
         </div>
-        <div className="seq">Applied ({applied.length})</div>
+        <div className="stamp">Applied ({applied.length})</div>
         <div style={{ fontSize: "0.85rem" }}>
           {applied.length ? applied.join(", ") : "(none)"}
         </div>
@@ -84,7 +107,7 @@ export default async function RootLayout({
 }) {
   const migration = await autoMigrate();
   return (
-    <html lang="en">
+    <html lang="en" className={`${spectral.variable} ${archivo.variable} ${plexMono.variable}`}>
       <body>
         <AppBar />
         <div className="container">

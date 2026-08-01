@@ -11,87 +11,60 @@ function formatDreamDate(iso: string): string {
   const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!m) return iso;
   const [, y, mo, d] = m;
-  return `${MONTHS[Number(mo) - 1] ?? mo} ${Number(d)}, ${y}`;
+  return `${MONTHS[Number(mo) - 1] ?? mo} ${Number(d)} ${y}`;
 }
 
+// The last dream is the hero — not a stat block. Enough of the transcript is
+// shown that you start reading it, in the dreamer's own type.
 export default async function Home() {
   const userId = await requireUserId();
   const stats = await getDashboardStats(userId);
-
   const unanalyzed = stats.dreams - stats.analyzedDreams;
 
   return (
     <main>
-      <Link href="/record" className="btn btn-primary btn-block btn-lg" style={{ marginTop: 4 }}>
+      <Link href="/record" className="btn btn-primary btn-block btn-lg">
         Record a dream
       </Link>
 
-      {stats.dreams === 0 ? (
-        <div className="card" style={{ textAlign: "center", marginTop: 22 }}>
-          <p className="muted" style={{ margin: 0 }}>
-            No dreams yet. Record your first one and this page will start keeping count.
+      {!stats.lastDream ? (
+        <div style={{ marginTop: 40 }}>
+          <p className="said" style={{ marginBottom: 18 }}>
+            Nothing recorded yet. The first one can be a fragment — a room, a face,
+            the one image that stayed.
           </p>
         </div>
       ) : (
         <>
-          {/* One hero figure per view: the size of the corpus. */}
-          <div className="hero" style={{ marginTop: 26 }}>
-            <div className="hero-figure">{stats.dreams.toLocaleString()}</div>
-            <div className="muted">
-              dream{stats.dreams === 1 ? "" : "s"} recorded
-            </div>
-          </div>
+          <Link
+            href={`/dreams/${stats.lastDream.id}`}
+            style={{ display: "block", textDecoration: "none", marginTop: 38 }}
+          >
+            <span className="lede-seq">
+              {String(stats.lastDream.sequenceNo).padStart(2, "0")}
+            </span>
+            <div className="said-title">{stats.lastDream.title}</div>
+            <div className="said lede-excerpt">{stats.lastDreamExcerpt}</div>
+          </Link>
 
-          <div className="stat-row">
-            <div className="stat">
-              <div className="stat-label">Analyzed</div>
-              <div className="stat-value">
-                {stats.analyzedDreams}
-                <span className="stat-of"> of {stats.dreams}</span>
-              </div>
-            </div>
-            <div className="stat">
-              <div className="stat-label">Analyses run</div>
-              <div className="stat-value">{stats.analyses}</div>
-            </div>
-            <div className="stat">
-              <div className="stat-label">Trend passes</div>
-              <div className="stat-value">{stats.trendRuns}</div>
-            </div>
-            <div className="stat">
-              <div className="stat-label">Later additions</div>
-              <div className="stat-value">{stats.additions}</div>
-            </div>
-          </div>
-
-          {unanalyzed > 0 && (
-            <Link href="/dreams" className="card card-link nudge">
-              <span className="status status-warn">
-                {unanalyzed} dream{unanalyzed === 1 ? "" : "s"} not analyzed
-              </span>
-            </Link>
-          )}
-
-          {stats.lastDream && (
-            <>
-              <h2>Last recorded</h2>
-              <Link
-                href={`/dreams/${stats.lastDream.id}`}
-                className="card card-link"
-                style={{ marginTop: 0 }}
-              >
-                <div className="dream-title">{stats.lastDream.title}</div>
-                <div className="dream-snippet">{stats.lastDream.snippet}</div>
-                <div className="seq" style={{ marginTop: 8 }}>
-                  Dream {stats.lastDream.sequenceNo}
-                  {stats.lastDream.dreamtOn
-                    ? ` · ${formatDreamDate(stats.lastDream.dreamtOn)}`
-                    : ""}
-                </div>
+          <div className="ledger">
+            <span className="stamp">
+              {stats.dreams} dream{stats.dreams === 1 ? "" : "s"}
+            </span>
+            {stats.lastDream.dreamtOn && (
+              <span className="stamp">last {formatDreamDate(stats.lastDream.dreamtOn)}</span>
+            )}
+            <span className="stamp">
+              {stats.lastTrendCorpus === null
+                ? "no trend pass"
+                : `trend at corpus ${stats.lastTrendCorpus}`}
+            </span>
+            {unanalyzed > 0 && (
+              <Link href="/dreams" className="stamp stamp-flag" style={{ textDecoration: "none" }}>
+                {unanalyzed} unanalyzed
               </Link>
-            </>
-          )}
-
+            )}
+          </div>
         </>
       )}
     </main>

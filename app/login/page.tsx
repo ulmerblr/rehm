@@ -15,10 +15,20 @@ export default async function Login({
   return (
     <main>
       <div style={{ textAlign: "center", margin: "24px 0 28px" }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/wordmark-light.svg" alt="rehm" style={{ height: 44, display: "inline-block" }} />
+        <span
+          role="img"
+          aria-label="rehm"
+          style={{
+            display: "inline-block",
+            width: 148,
+            height: 44,
+            background: "var(--said)",
+            WebkitMask: "url(/wordmark-mono.svg) no-repeat center / contain",
+            mask: "url(/wordmark-mono.svg) no-repeat center / contain",
+          }}
+        />
       </div>
-      <p className="muted">Sign in.</p>
+      <p className="machine">Sign in.</p>
       {error && <p className="notice">{message}</p>}
       <form method="post" action="/api/auth/login" className="stack" style={{ marginTop: 18 }}>
         <div>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireUserId } from "@/lib/session";
 import { listTrendRuns, listDreamDates, listDreams, type TrendRun } from "@/lib/queries";
-import { formatDreamNumbers, formatStamp } from "@/lib/scope";
+import { formatStamp } from "@/lib/scope";
 import ExportButton from "@/app/components/ExportButton";
 import TrendRunner from "./TrendRunner";
 
@@ -18,62 +18,53 @@ export default async function Trends() {
 
   return (
     <main>
-      <div className="row" style={{ justifyContent: "space-between" }}>
-        <h1 style={{ margin: 0 }}>Trends</h1>
-      </div>
-      <p className="muted">
-        Choose how much of the corpus to read. Every claim cites the dreams it rests on. Past runs
-        are kept and never overwritten.
+      <h1>Trends</h1>
+      <p className="machine">
+        Every claim cites the dreams it rests on. A pass is kept at the corpus size
+        it was drawn from, and never overwritten.
       </p>
 
-      <div style={{ margin: "18px 0" }}>
+      <div style={{ margin: "22px 0 34px" }}>
         {dreams.length === 0 ? (
-          <p className="muted">Record a dream first — there is nothing to look across yet.</p>
+          <p className="said">Record a dream first — there is nothing to read across yet.</p>
         ) : (
           <TrendRunner dreams={dreams} analyzedCount={analyzedCount} />
         )}
       </div>
 
-      {runs.length > 0 && <h2>Past runs</h2>}
       {runs.length === 0 ? (
-        <p className="muted">No trend runs yet.</p>
+        <p className="stamp">no passes yet</p>
       ) : (
-        <div className="stack">
+        <div>
           {runs.map((run) => (
             <details key={run.id} className="run">
               <summary>
-                <div>
-                  <div className="run-dreams">
-                    {run.dreamNumbers.length > 0
-                      ? `Dream${run.dreamNumbers.length === 1 ? "" : "s"} ${formatDreamNumbers(run.dreamNumbers)}`
-                      : run.scopeLabel}
-                  </div>
-                  <div className="seq">
-                    {formatStamp(run.createdAt)} ·{" "}
-                    {run.source === "dreams_and_analyses"
-                      ? "read dreams + analyses"
-                      : "read dreams"}
-                  </div>
-                </div>
+                <span className="run-corpus">corpus {run.corpusSize}</span>
+                <span className="stamp">
+                  {formatStamp(run.createdAt)}
+                  {run.source === "dreams_and_analyses" ? " · + analyses" : ""}
+                </span>
               </summary>
 
               <div className="run-body">
-                {run.body && <p style={{ whiteSpace: "pre-wrap", marginTop: 0 }}>{run.body}</p>}
+                {run.body && (
+                  <p className="machine" style={{ whiteSpace: "pre-wrap" }}>
+                    {run.body}
+                  </p>
+                )}
 
-                <div className="stack" style={{ marginTop: 14 }}>
+                <div style={{ marginTop: 18 }}>
                   {run.claims.length === 0 ? (
-                    <p className="muted">No cited claims in this run.</p>
+                    <p className="stamp">no cited claims</p>
                   ) : (
                     run.claims.map((c, i) => (
-                      <div key={i}>
-                        <div>{c.claim}</div>
-                        <div className="seq" style={{ marginTop: 4 }}>
-                          dreams:{" "}
-                          {c.citations.map((cit, j) => (
-                            <span key={cit.id}>
-                              {j > 0 ? ", " : ""}
-                              <Link href={`/dreams/${cit.id}`}>#{cit.number}</Link>
-                            </span>
+                      <div key={i} className="claim">
+                        <div className="machine">{c.claim}</div>
+                        <div>
+                          {c.citations.map((cit) => (
+                            <Link key={cit.id} href={`/dreams/${cit.id}`} className="cite">
+                              {String(cit.number).padStart(2, "0")}
+                            </Link>
                           ))}
                         </div>
                       </div>
@@ -83,16 +74,20 @@ export default async function Trends() {
 
                 {run.closing && (
                   <div className="closing">
-                    <div className="seq" style={{ marginBottom: 6 }}>In sum</div>
-                    <p style={{ whiteSpace: "pre-wrap", margin: 0 }}>{run.closing}</p>
+                    <div className="stamp stamp-machine" style={{ marginBottom: 8 }}>
+                      in sum
+                    </div>
+                    <div className="machine" style={{ whiteSpace: "pre-wrap" }}>
+                      {run.closing}
+                    </div>
                   </div>
                 )}
 
-                <div className="seq" style={{ marginTop: 16 }}>
-                  {run.scopeLabel} · {run.corpusSize} read · {run.model} · {run.promptVersion}
+                <div className="stamp stamp-machine" style={{ marginTop: 20 }}>
+                  {run.scopeLabel} · {run.model} · {run.promptVersion}
                 </div>
-                <div style={{ marginTop: 12 }}>
-                  <ExportButton text={buildTrendExport(run)} label="Copy run as text" />
+                <div style={{ marginTop: 14 }}>
+                  <ExportButton text={buildTrendExport(run)} label="Copy as text" />
                 </div>
               </div>
             </details>
