@@ -111,6 +111,70 @@ const T2 = "There was a truck that ended up turning into a plane and then it van
   is("curly plus trailing period lands right", T.slice(r.start!, r.end!), "I can't remember");
 }
 
+// --- elisions: the case from the real screenshot ----------------------------
+// The analysis wrote: "you're just a player just like I am... if I didn't do
+// something right, the directors would tell me." No amount of normalizing finds
+// that string, because it was never contiguous.
+{
+  const T4 =
+    "and I told him look you're just a player just like I am, I mean we both " +
+    "signed up the same way, and if I didn't do something right, the directors " +
+    "would tell me about it";
+  const r = resolveQuote(
+    T4,
+    "you're just a player just like I am... if I didn't do something right, the directors would tell me"
+  );
+  is("an elided quote resolves", r.kind, "anchored");
+  is("the elided span starts at the first piece", T4.slice(r.start!, r.start! + 12), "you're just ");
+  is("the elided span ends at the last piece", T4.slice(r.end! - 13, r.end!), "would tell me");
+  is("the elided span covers the skipped middle", T4.slice(r.start!, r.end!).includes("we both"), true);
+}
+{
+  // A unicode ellipsis is the same case.
+  const T5 = "I was climbing the jungle gym and crawling around in the crawl spaces underneath";
+  const r = resolveQuote(T5, "I was climbing the jungle gym…crawling around in the crawl spaces");
+  is("a unicode ellipsis resolves", r.kind, "anchored");
+}
+{
+  // Two common fragments at opposite ends of a long transcript must NOT be
+  // spanned together: that is a coincidence, not a quote.
+  const long = "and then I said yes " + "x ".repeat(400) + "and then I said no";
+  const r = resolveQuote(long, "and then I said yes... and then I said no");
+  is("a stretched elision is refused", r.kind, "unresolved");
+}
+{
+  // Fragments too short to be distinctive are not anchors.
+  const r = resolveQuote(T, "We were...except us.");
+  is("short elision pieces are refused", r.kind, "unresolved");
+}
+
+// --- anchored: the quote tightened the middle -------------------------------
+{
+  const T6 =
+    "I didn't get disqualified because they couldn't, you know, they couldn't " +
+    "take me to the right platform, and I didn't lose";
+  const r = resolveQuote(
+    T6,
+    "I didn't get disqualified because they couldn't take me to the right platform, and I didn't lose."
+  );
+  is("a tightened quote resolves by its ends", r.kind, "anchored");
+  is(
+    "the anchored span covers the words that were skipped",
+    T6.slice(r.start!, r.end!).includes("you know"),
+    true
+  );
+}
+{
+  // Both ends must be real. An invented quote has no ends to find.
+  const r = resolveQuote(T, "the horse was made of glass and it shattered on the floor below");
+  is("an invented quote is never anchored", r.kind, "unresolved");
+}
+{
+  // A quote whose head matches but whose tail does not is not a match.
+  const r = resolveQuote(T, "We were trying to, I can't remember, ride the glass horse home");
+  is("a half-matching quote is refused", r.kind, "unresolved");
+}
+
 // --- unresolved must stay unresolved ---------------------------------------
 {
   const r = resolveQuote(T, "a horse made entirely of glass");

@@ -11,6 +11,10 @@
  *   exact       indexOf. The quote is character-for-character in the source.
  *   normalized  curly quotes unified with straight, whitespace runs collapsed,
  *               case ignored, then mapped back to true offsets in the original.
+ *   anchored    the quote's two ends are found verbatim but its middle is not:
+ *               an elision ("just like I am... if I didn't"), or prose that
+ *               tightened the run between them. The span covers end to end,
+ *               which is the passage the reader wants to see anyway.
  *   unresolved  no offsets. The quote is kept; nothing is fabricated.
  *
  * Offsets always index the ORIGINAL transcript, never the normalized copy, so a
@@ -21,7 +25,7 @@
  * analysis with error states over a stray apostrophe.
  */
 
-export type MatchKind = "exact" | "normalized" | "unresolved";
+export type MatchKind = "exact" | "normalized" | "anchored" | "unresolved";
 
 export type Resolved = {
   /** Offsets into the ORIGINAL transcript. Null when unresolved. */
@@ -136,7 +140,124 @@ export function resolveQuote(
     if (foldedBare) return foldedBare;
   }
 
+  // Rung 3: the quote elides its own middle. Prose does this constantly —
+  // "you're just a player just like I am... if I didn't do something right" —
+  // and no amount of normalizing will find a string that was never contiguous.
+  // Each piece is located in turn, and the span runs from the first to the
+  // last, which is the passage a reader opening this wants to see whole.
+  const pieces = splitElision(trimmed || needle);
+  if (pieces.length > 1) {
+    const elided = resolveInOrder(hay, pieces);
+    if (elided) return elided;
+  }
+
+  // Rung 4: both ends are there but the run between them is not — the quote
+  // tightened it. Requiring BOTH ends to match verbatim is what keeps this
+  // conservative: a quote invented wholesale has no ends to find.
+  const anchored = resolveAnchored(hay, trimmed || needle);
+  if (anchored) return anchored;
+
   return { start: null, end: null, kind: "unresolved" };
+}
+
+/** Split on the ellipsis an author uses to skip a stretch of what was said. */
+function splitElision(quote: string): string[] {
+  return quote
+    .split(/\s*(?:\.\s*\.\s*\.|…)\s*/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+}
+
+// An anchor shorter than this matches half the transcript by accident.
+const MIN_ANCHOR = 12;
+// How far the located span may exceed the quote's own length before the match
+// stops being a match and starts being two coincidences.
+const MAX_STRETCH = 3;
+
+/**
+ * Locate several fragments in order, and span from the first to the last.
+ *
+ * Every fragment must be long enough to be distinctive on its own, and the
+ * whole span must stay near the length of the quote it came from — otherwise
+ * two common phrases at opposite ends of a transcript would "resolve" to
+ * everything in between.
+ */
+function resolveInOrder(
+  hay: { text: string; map: number[] },
+  pieces: string[]
+): Resolved | null {
+  if (pieces.some((p) => fold(p).text.length < MIN_ANCHOR)) return null;
+
+  let from = 0;
+  let start: number | null = null;
+  let end: number | null = null;
+  for (const piece of pieces) {
+    const hit = findFoldedFrom(hay, piece, from);
+    if (!hit) return null;
+    if (start === null) start = hit.foldedStart;
+    end = hit.foldedEnd;
+    from = hit.foldedEnd;
+  }
+  if (start === null || end === null) return null;
+
+  const wanted = pieces.reduce((n, p) => n + fold(p).text.length, 0);
+  if (end - start > wanted * MAX_STRETCH) return null;
+
+  return {
+    start: hay.map[start],
+    end: hay.map[end - 1] + 1,
+    kind: "anchored",
+  };
+}
+
+/** Head and tail of the quote, found verbatim, spanning whatever sits between. */
+function resolveAnchored(
+  hay: { text: string; map: number[] },
+  quote: string
+): Resolved | null {
+  const f = fold(quote);
+  if (f.text.length < MIN_ANCHOR * 2) return null;
+
+  const words = f.text.split(" ");
+  if (words.length < 6) return null;
+
+  const head = takeWords(words, 4, "head");
+  const tail = takeWords(words, 4, "tail");
+  if (head.length < MIN_ANCHOR || tail.length < MIN_ANCHOR) return null;
+
+  const at = hay.text.indexOf(head);
+  if (at < 0) return null;
+  const tailAt = hay.text.indexOf(tail, at + head.length);
+  if (tailAt < 0) return null;
+
+  const foldedEnd = tailAt + tail.length;
+  if (foldedEnd - at > f.text.length * MAX_STRETCH) return null;
+
+  return { start: hay.map[at], end: hay.map[foldedEnd - 1] + 1, kind: "anchored" };
+}
+
+/** Grow an anchor from one end until it is distinctive enough to trust. */
+function takeWords(words: string[], min: number, from: "head" | "tail"): string {
+  let n = Math.min(min, words.length);
+  let take = () => (from === "head" ? words.slice(0, n) : words.slice(words.length - n));
+  while (take().join(" ").length < MIN_ANCHOR && n < words.length) {
+    n++;
+    take = () => (from === "head" ? words.slice(0, n) : words.slice(words.length - n));
+  }
+  return take().join(" ");
+}
+
+/** findFolded, but starting from a position already reached in folded space. */
+function findFoldedFrom(
+  hay: { text: string; map: number[] },
+  needle: string,
+  fromFolded: number
+): { foldedStart: number; foldedEnd: number } | null {
+  const f = fold(needle);
+  if (!f.text) return null;
+  const at = hay.text.indexOf(f.text, fromFolded);
+  if (at < 0) return null;
+  return { foldedStart: at, foldedEnd: at + f.text.length };
 }
 
 function findFolded(

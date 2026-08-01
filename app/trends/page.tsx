@@ -144,7 +144,11 @@ export default async function Trends() {
                 {/* Whether the model is quoting or inventing, as a number. A
                     run with no spans at all predates trend-v4 and says nothing
                     rather than reporting a misleading zero. */}
-                {run.spanTally.exact + run.spanTally.normalized + run.spanTally.unresolved > 0 && (
+                {run.spanTally.exact +
+                  run.spanTally.normalized +
+                  run.spanTally.anchored +
+                  run.spanTally.unresolved >
+                  0 && (
                   <div
                     className={
                       run.spanTally.unresolved > 0
@@ -153,11 +157,7 @@ export default async function Trends() {
                     }
                     style={{ marginTop: 6 }}
                   >
-                    {t.spansResolved(
-                      run.spanTally.exact,
-                      run.spanTally.normalized,
-                      run.spanTally.unresolved
-                    )}
+                    {t.spansResolved(run.spanTally)}
                   </div>
                 )}
                 <div style={{ marginTop: 14 }}>

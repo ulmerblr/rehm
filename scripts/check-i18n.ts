@@ -88,6 +88,7 @@ const ARGS: Record<string, unknown[]> = {
   invitedByLabel: ["ana"],
   billedToSponsor: ["ulmerb"],
   billedHere: [1200, 340],
+  spansResolved: [{ exact: 12, normalized: 2, anchored: 1, unresolved: 1 }],
 };
 const fnKeys = enKeys.filter((k) => typeof en[k] === "function");
 const fnSame: string[] = [];

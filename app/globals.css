@@ -1038,7 +1038,7 @@ summary {
   display: inline;
   white-space: inherit;
   font-family: var(--font-said-stack);
-  font-size: 1.0625em; /* relative: the serif runs small beside the sans */
+  font-size: 1.03em; /* the serif runs small beside the sans; barely correct it */
   color: var(--said);
   background: none;
   border: 0;
@@ -1046,15 +1046,22 @@ summary {
   margin: 0;
   cursor: pointer;
   text-align: left;
-  /* The only decoration: a hairline that says "this goes somewhere" without
-     competing with the sentence it sits in. */
-  border-bottom: 1px solid var(--rule);
-  transition: border-color 0.12s ease;
+  /* text-decoration, NOT border-bottom. A border is drawn on the whole line
+     BOX, so a quotation long enough to fill a line came out as a rule running
+     the full column width — indistinguishable from a paragraph divider, which
+     is exactly what it looked like. An underline is drawn on the glyphs, so it
+     stops where the words stop and a quote reads as part of its sentence.
+     Kept faint on purpose: this marks a passage, it doesn't announce one. */
+  text-decoration-line: underline;
+  text-decoration-color: color-mix(in srgb, var(--brass) 40%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.12s ease;
 }
 
 .cite-quote:hover,
 .cite-quote:focus-visible {
-  border-bottom-color: var(--brass);
+  text-decoration-color: var(--brass);
 }
 
 /* Evidence beneath a trend claim. Quotes stand in their own stack rather than

@@ -83,14 +83,24 @@ Quoted passages in an analysis, and the evidence under a trend claim, open the
 raw transcript at the passage in a modal. Nothing navigates: the point of
 checking a citation is not losing the argument you were reading.
 
-**Offsets are the server's, never the model's.** `lib/spans.ts` searches the
-transcript for the quote — exact, then a normalized pass that unifies curly
-punctuation, collapses whitespace and ignores case, then a retry with trailing
-punctuation stripped (an analysis routinely pulls the sentence's comma inside
-its closing quote). If none of those find it, the quote is kept with no offsets
-and `match_kind = 'unresolved'`. A position is never invented, a quote is never
-dropped, and an unresolved quotation renders as ordinary prose with no marker —
-silent failure is correct here.
+**Offsets are the server's, never the model's.** `lib/spans.ts` walks a ladder
+and stops at the first rung that holds:
+
+- `exact` — `indexOf`.
+- `normalized` — curly punctuation unified, whitespace runs collapsed, case
+  ignored, then mapped back to true offsets; plus a retry with trailing
+  punctuation stripped, since an analysis routinely pulls the sentence's comma
+  inside its closing quote.
+- `anchored` — both ends found verbatim, in order, spanning whatever sits
+  between. This is the rung for elisions (`"just like I am... if I didn't"`) and
+  for prose that tightened a run of speech. Requiring **both** ends is what
+  keeps it honest — an invented quote has no ends to find — and the span is
+  refused if it stretches past 3× the quote's own length, so two common phrases
+  far apart can't "resolve" to everything between them.
+- `unresolved` — no offsets. The quote is kept; nothing is fabricated.
+
+An unresolved quotation renders as ordinary prose with no marker. Silent
+failure is correct here.
 
 **Analyses are resolved at render, not stored.** The two strings needed are
 already on file, so every analysis ever written is clickable with no re-run, and

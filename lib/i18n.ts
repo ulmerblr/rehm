@@ -268,7 +268,7 @@ export type Dict = {
   evidence: string;
   builtOnThis: string;
   claimsRestingHere: (n: number) => string;
-  spansResolved: (exact: number, normalized: number, unresolved: number) => string;
+  spansResolved: (t: { exact: number; normalized: number; anchored: number; unresolved: number }) => string;
 
   // First-run setup
   setupTitle: string;
@@ -562,10 +562,15 @@ const en: Dict = {
   evidence: "in your words",
   builtOnThis: "Built on this",
   claimsRestingHere: (n) => (n === 1 ? "1 claim rests on this" : `${n} claims rest on this`),
-  spansResolved: (exact, normalized, unresolved) =>
-    `${exact + normalized} of ${exact + normalized + unresolved} quotes found` +
-    (normalized > 0 ? ` (${normalized} after normalizing)` : "") +
-    (unresolved > 0 ? ` · ${unresolved} not found` : ""),
+  spansResolved: (n) =>
+    [
+      n.exact > 0 ? `${n.exact} exact` : "",
+      n.normalized > 0 ? `${n.normalized} normalized` : "",
+      n.anchored > 0 ? `${n.anchored} by their ends` : "",
+      n.unresolved > 0 ? `${n.unresolved} not found` : "",
+    ]
+      .filter(Boolean)
+      .join(" · "),
 
   setupTitle: "Two things before you start",
   setupLead:
@@ -869,10 +874,15 @@ const es: Dict = {
   builtOnThis: "Construido sobre esto",
   claimsRestingHere: (n) =>
     n === 1 ? "1 afirmación se apoya en esto" : `${n} afirmaciones se apoyan en esto`,
-  spansResolved: (exact, normalized, unresolved) =>
-    `${exact + normalized} de ${exact + normalized + unresolved} citas encontradas` +
-    (normalized > 0 ? ` (${normalized} tras normalizar)` : "") +
-    (unresolved > 0 ? ` · ${unresolved} sin encontrar` : ""),
+  spansResolved: (n) =>
+    [
+      n.exact > 0 ? `${n.exact} exactas` : "",
+      n.normalized > 0 ? `${n.normalized} normalizadas` : "",
+      n.anchored > 0 ? `${n.anchored} por los extremos` : "",
+      n.unresolved > 0 ? `${n.unresolved} sin encontrar` : "",
+    ]
+      .filter(Boolean)
+      .join(" · "),
 
   setupTitle: "Dos cosas antes de empezar",
   setupLead:

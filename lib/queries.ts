@@ -1,6 +1,7 @@
 import { getSql } from "@/lib/db";
 import type { Addendum } from "@/lib/dreamText";
 import { inviteStatus } from "@/lib/invites";
+import type { MatchKind } from "@/lib/spans";
 
 // Neon driver quirks: DATE -> Date object, integers -> number, bigint (sum,
 // count) -> string, uuid[] -> JS array, nulls -> null. Coerce and guard every
@@ -498,6 +499,12 @@ export async function getAnalyses(dreamId: string): Promise<Analysis[]> {
 
 export type Citation = { number: number; id: string };
 
+// The column is CHECK-constrained, but a value read back is still just text.
+function asMatchKind(v: unknown): MatchKind {
+  const s = String(v);
+  return s === "exact" || s === "normalized" || s === "anchored" ? s : "unresolved";
+}
+
 /** One piece of evidence: a claim, a dream, and the passage it rests on. */
 export type ClaimSpan = {
   id: string;
@@ -509,7 +516,7 @@ export type ClaimSpan = {
   /** Offsets into that dream's raw transcript. Null when unresolved. */
   start: number | null;
   end: number | null;
-  kind: "exact" | "normalized" | "unresolved";
+  kind: MatchKind;
 };
 
 export type TrendClaim = {
@@ -520,7 +527,7 @@ export type TrendClaim = {
 };
 
 /** How the evidence for a run landed. The unresolved count is the one to watch. */
-export type SpanTally = { exact: number; normalized: number; unresolved: number };
+export type SpanTally = Record<MatchKind, number>;
 export type TrendRun = {
   id: string;
   corpusSize: number;
@@ -593,12 +600,7 @@ export async function listTrendRuns(userId: string): Promise<TrendRun[]> {
         quote: String(s.quote),
         start: s.char_start == null ? null : toInt(s.char_start),
         end: s.char_end == null ? null : toInt(s.char_end),
-        kind:
-          s.match_kind === "exact"
-            ? "exact"
-            : s.match_kind === "normalized"
-              ? "normalized"
-              : "unresolved",
+        kind: asMatchKind(s.match_kind),
       });
       spansByClaim.set(claimId, list);
     }
@@ -626,7 +628,7 @@ export async function listTrendRuns(userId: string): Promise<TrendRun[]> {
       );
       return { id: String(c.id), claim: String(c.claim), citations, spans };
     });
-    const spanTally: SpanTally = { exact: 0, normalized: 0, unresolved: 0 };
+    const spanTally: SpanTally = { exact: 0, normalized: 0, anchored: 0, unresolved: 0 };
     for (const c of claims) for (const s of c.spans) spanTally[s.kind]++;
     runs.push({
       id: runId,
