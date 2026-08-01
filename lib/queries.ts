@@ -316,6 +316,7 @@ export type TrendRun = {
   corpusSize: number;
   scopeLabel: string;
   dreamNumbers: number[];
+  source: "dreams" | "dreams_and_analyses";
   model: string;
   promptVersion: string;
   body: string | null;
@@ -329,8 +330,8 @@ export async function listTrendRuns(userId: string): Promise<TrendRun[]> {
   let runRows: Array<Record<string, unknown>>;
   try {
     runRows = (await sql`
-      SELECT id, corpus_size, scope_label, dream_numbers, model, prompt_version,
-             body, closing, created_at
+      SELECT id, corpus_size, scope_label, dream_numbers, source, model,
+             prompt_version, body, closing, created_at
       FROM trend_runs WHERE user_id = ${userId}
       ORDER BY created_at DESC
     `) as Array<Record<string, unknown>>;
@@ -339,7 +340,7 @@ export async function listTrendRuns(userId: string): Promise<TrendRun[]> {
     // Newer columns not added yet — fall back to what every schema has had.
     runRows = (await sql`
       SELECT id, corpus_size, NULL AS scope_label, NULL AS dream_numbers,
-             model, prompt_version, body, NULL AS closing, created_at
+             NULL AS source, model, prompt_version, body, NULL AS closing, created_at
       FROM trend_runs WHERE user_id = ${userId}
       ORDER BY created_at DESC
     `) as Array<Record<string, unknown>>;
@@ -378,6 +379,8 @@ export async function listTrendRuns(userId: string): Promise<TrendRun[]> {
       dreamNumbers: Array.isArray(r.dream_numbers)
         ? (r.dream_numbers as unknown[]).map((n) => toInt(n))
         : Array.from(new Set(claims.flatMap((c) => c.citations.map((cit) => cit.number)))),
+      // Runs predating the choice all read transcripts only.
+      source: r.source === "dreams_and_analyses" ? "dreams_and_analyses" : "dreams",
       model: String(r.model),
       promptVersion: String(r.prompt_version),
       body: r.body == null ? null : String(r.body),

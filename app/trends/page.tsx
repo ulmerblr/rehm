@@ -51,7 +51,12 @@ export default async function Trends() {
                       ? `Dream${run.dreamNumbers.length === 1 ? "" : "s"} ${formatDreamNumbers(run.dreamNumbers)}`
                       : run.scopeLabel}
                   </div>
-                  <div className="seq">{formatStamp(run.createdAt)}</div>
+                  <div className="seq">
+                    {formatStamp(run.createdAt)} ·{" "}
+                    {run.source === "dreams_and_analyses"
+                      ? "read dreams + analyses"
+                      : "read dreams"}
+                  </div>
                 </div>
               </summary>
 
@@ -104,7 +109,7 @@ export default async function Trends() {
 function buildTrendExport(run: TrendRun): string {
   const parts: string[] = [];
   parts.push(
-    `TREND RUN ${run.createdAt} — ${run.scopeLabel} (model=${run.model}, prompt_version=${run.promptVersion}, corpus_size=${run.corpusSize})`
+    `TREND RUN ${run.createdAt} — ${run.scopeLabel} (source=${run.source}, model=${run.model}, prompt_version=${run.promptVersion}, corpus_size=${run.corpusSize})`
   );
   if (run.body) {
     parts.push("");
