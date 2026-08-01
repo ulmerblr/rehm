@@ -12,6 +12,7 @@ import { getUserAnthropic, markKeyVerified } from "@/lib/keys";
 import { userFacingAnthropicError } from "@/lib/errors";
 import { addendaByDream, latestAnalysisByDream } from "@/lib/queries";
 import { composeDreamText } from "@/lib/dreamText";
+import { prepareCounterpart } from "@/lib/translations";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -287,11 +288,14 @@ export async function POST(
     RETURNING id
   `) as Array<{ id: string }>;
 
+  const claimIds: Array<{ id: string; claim: string }> = [];
   for (const c of resolved) {
-    await sql`
+    const [ins] = (await sql`
       INSERT INTO trend_claims (trend_run_id, claim, dream_ids)
       VALUES (${run.id}, ${c.claim}, ${c.dreamIds}::uuid[])
-    `;
+      RETURNING id
+    `) as Array<{ id: string }>;
+    claimIds.push({ id: String(ins.id), claim: c.claim });
   }
 
   try {
@@ -310,6 +314,15 @@ export async function POST(
     WHERE id = ${jobId}
   `;
   await markKeyVerified(got.keyId);
+
+  // A trend pass is the thing you'd most want to hand the phone over for, so
+  // its closing and claims get the other language prepared now. This runs on
+  // the last step of an already-queued job, so it has the whole budget to
+  // itself; the run is written and safe before any of it starts.
+  await prepareCounterpart(userId, [
+    ...(closing ? [{ type: "trend_closing" as const, id: String(run.id), text: closing }] : []),
+    ...claimIds.map((c) => ({ type: "trend_claim" as const, id: c.id, text: c.claim })),
+  ]);
 
   const p = await progress();
   return NextResponse.json({

@@ -4,6 +4,8 @@ import { listTrendRuns, listDreamDates, listDreams, type TrendRun } from "@/lib/
 import { formatDreamNumbers, formatStamp } from "@/lib/scope";
 import ExportButton from "@/app/components/ExportButton";
 import TrendRunner from "./TrendRunner";
+import { resolveView } from "@/lib/viewLang";
+import { loadTranslations, display } from "@/lib/translations";
 
 export const dynamic = "force-dynamic";
 
@@ -15,10 +17,19 @@ export default async function Trends() {
     listDreams(userId),
   ]);
   const analyzedCount = dreamList.filter((d) => d.analysisCount > 0).length;
+  const view = await resolveView(userId);
+  const t = view.t;
+
+  // A trend pass is the thing you'd most likely hand the phone over for, so
+  // every closing and claim on the page is resolved in one lookup.
+  const tr = await loadTranslations(userId, view.lang, [
+    ...runs.map((r) => ({ type: "trend_closing" as const, id: r.id })),
+    ...runs.flatMap((r) => r.claims.map((c) => ({ type: "trend_claim" as const, id: c.id }))),
+  ]);
 
   return (
     <main>
-      <h1>Trends</h1>
+      <h1>{t.trends}</h1>
       <p className="machine">
         Every claim cites the dreams it rests on. Each pass is kept at the size it
         was drawn from, so a claim made at 9 dreams can be checked against 20.
@@ -33,7 +44,7 @@ export default async function Trends() {
       </div>
 
       {runs.length === 0 ? (
-        <p className="stamp">no passes yet</p>
+        <p className="stamp">{t.noTrendsYet}</p>
       ) : (
         <div>
           {runs.map((run) => (
@@ -64,8 +75,10 @@ export default async function Trends() {
                     <p className="stamp">no cited claims</p>
                   ) : (
                     run.claims.map((c, i) => (
-                      <div key={i} className="claim">
-                        <div className="machine">{c.claim}</div>
+                      <div key={c.id || i} className="claim">
+                        <div className="machine">
+                          {display(c.claim, tr, "trend_claim", c.id).text}
+                        </div>
                         <div>
                           {c.citations.map((cit) => (
                             <Link key={cit.id} href={`/dreams/${cit.id}`} className="cite">
@@ -84,7 +97,7 @@ export default async function Trends() {
                       in sum
                     </div>
                     <div className="machine" style={{ whiteSpace: "pre-wrap" }}>
-                      {run.closing}
+                      {display(run.closing, tr, "trend_closing", run.id).text}
                     </div>
                   </div>
                 )}

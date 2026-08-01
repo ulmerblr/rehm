@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { LANG_TAG, type Lang } from "@/lib/lang";
 
 /**
  * Browser dictation, with the failure modes handled.
@@ -38,7 +39,7 @@ const ERRORS: Record<string, string> = {
   "service-not-allowed": "The browser refused to run speech recognition.",
   "audio-capture": "No microphone available.",
   network: "Dictation sends audio to the browser's speech service, and it didn't answer.",
-  "language-not-supported": "This browser can't dictate in English here.",
+  "language-not-supported": "This browser can't dictate in that language.",
 };
 
 /**
@@ -74,7 +75,7 @@ export function decideOnEnd(x: {
 const START_TIMEOUT_MS = 5000;
 const MAX_SILENT_RESTARTS = 8;
 
-export function useDictation(onText: (text: string) => void) {
+export function useDictation(onText: (text: string) => void, speakLang: Lang = "en") {
   const [state, setState] = useState<DictationState>("unsupported");
   const [interim, setInterim] = useState("");
   const [note, setNote] = useState<string | null>(null);
@@ -160,7 +161,7 @@ export function useDictation(onText: (text: string) => void) {
     const rec = new Rec();
     rec.continuous = true;
     rec.interimResults = true; // so you can see it working before it commits
-    rec.lang = "en-US";
+    rec.lang = LANG_TAG[speakLang];
 
     rec.onstart = () => {
       liveRef.current = true;
@@ -212,7 +213,7 @@ export function useDictation(onText: (text: string) => void) {
       // Thrown when a previous session is still shutting down.
       stop("Dictation wouldn't start.");
     }
-  }, [stop]);
+  }, [stop, speakLang]);
 
   const start = useCallback(() => {
     if (state === "unsupported") return;

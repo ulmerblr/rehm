@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSql } from "@/lib/db";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { prepareCounterpart } from "@/lib/translations";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Accepting may translate the restatement, which calls the model.
+export const maxDuration = 60;
 
 // Accept the latest proposal: flip accepted + accepted_at (column-level grant).
 // Locked afterwards. Scoped to the session user's own restatement.
@@ -39,5 +42,20 @@ export async function POST(
   if (updated.length === 0) {
     return NextResponse.json({ error: "already accepted" }, { status: 409 });
   }
+
+  // The restatement's text is its latest proposal turn — accepting is what
+  // makes it final, so this is the moment it is worth translating. Keyed to the
+  // restatement, which is what the dream page renders.
+  const latest = (await sql`
+    SELECT body FROM restatement_turns
+    WHERE restatement_id = ${restatementId} AND role = 'proposal'
+    ORDER BY turn_no DESC LIMIT 1
+  `) as Array<{ body: string }>;
+  if (latest.length > 0) {
+    await prepareCounterpart(userId, [
+      { type: "restatement", id: restatementId, text: String(latest[0].body) },
+    ]);
+  }
+
   return NextResponse.json({ ok: true });
 }

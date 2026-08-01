@@ -2,6 +2,8 @@ import Link from "next/link";
 import { requireUserId } from "@/lib/session";
 import { listDreams } from "@/lib/queries";
 import AnalyzeInline from "@/app/components/AnalyzeInline";
+import { resolveView } from "@/lib/viewLang";
+import { loadTranslations, display } from "@/lib/translations";
 
 export const dynamic = "force-dynamic";
 
@@ -23,23 +25,35 @@ export default async function DreamLog({
   searchParams: Promise<{ show?: string }>;
 }) {
   const userId = await requireUserId();
+  const view = await resolveView(userId);
+  const t = view.t;
   const { show } = await searchParams;
   const all = await listDreams(userId);
 
   const onlyUnanalyzed = show === "unanalyzed";
   const dreams = onlyUnanalyzed ? all.filter((d) => d.analysisCount === 0) : all;
 
+  // One lookup for the whole page rather than one per row.
+  const tr = await loadTranslations(
+    userId,
+    view.lang,
+    dreams.flatMap((d) => [
+      { type: "title" as const, id: d.id },
+      { type: "dream" as const, id: d.id },
+    ])
+  );
+
   return (
     <main>
-      <h1>Log</h1>
+      <h1>{t.log}</h1>
 
       {onlyUnanalyzed && (
         <p className="row" style={{ gap: 14, marginTop: -6, marginBottom: 18 }}>
           <span className="stamp stamp-flag">
-            showing {dreams.length} not analyzed
+            {t.showingNotAnalyzed(dreams.length)}
           </span>
           <Link href="/dreams" className="stamp" style={{ textDecoration: "none" }}>
-            show all {all.length}
+            {t.showAll(all.length)}
           </Link>
         </p>
       )}
@@ -48,12 +62,13 @@ export default async function DreamLog({
         <p className="said">
           {onlyUnanalyzed ? (
             <>
-              Everything is analyzed. <Link href="/dreams">Show the whole log</Link>.
+              {t.everythingAnalyzed}{" "}
+              <Link href="/dreams">{t.showWholeLog}</Link>.
             </>
           ) : (
             <>
-              Nothing logged yet. <Link href="/record">Record a dream</Link> and it
-              will be the first entry.
+              {t.nothingLoggedYet}{" "}
+              <Link href="/record">{t.recordADream}</Link> {t.andItWillBeFirst}
             </>
           )}
         </p>
@@ -64,8 +79,12 @@ export default async function DreamLog({
               <div className="log-seq">{String(d.sequenceNo).padStart(2, "0")}</div>
               <div style={{ minWidth: 0 }}>
                 <Link href={`/dreams/${d.id}`} style={{ textDecoration: "none", display: "block" }}>
-                  <div className="log-title">{d.title}</div>
-                  <div className="log-excerpt">{d.snippet}</div>
+                  <div className="log-title">
+                    {display(d.title, tr, "title", d.id).text}
+                  </div>
+                  <div className="log-excerpt">
+                    {display(d.snippet, tr, "dream", d.id).text}
+                  </div>
                 </Link>
                 <div className="log-meta">
                   {d.dreamtOn && <span className="stamp">{formatDreamDate(d.dreamtOn)}</span>}

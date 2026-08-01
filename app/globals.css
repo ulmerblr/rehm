@@ -343,6 +343,47 @@ label {
   color: var(--said);
 }
 
+.app-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* The language lens. Brass-outlined rather than filled: it is a control you
+   reach for when handing the phone over, not a primary action competing with
+   "Record a dream". Shows the language you'd switch TO. */
+.lang-toggle {
+  font-family: var(--font-data-stack);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--brass);
+  background: transparent;
+  border: 1px solid var(--brass);
+  border-radius: 3px;
+  padding: 3px 7px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.lang-toggle:hover:not(:disabled) {
+  background: var(--brass);
+  color: var(--ink);
+}
+
+.lang-toggle:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* A translated passage is machine words standing in for said ones. The design
+   system encodes provenance, so a translation must never inherit the serif
+   that means testimony — it reads as machine, with the source noted. */
+.translated-note {
+  display: block;
+  margin-top: 6px;
+}
+
 .bottom-nav {
   position: fixed;
   left: 0;

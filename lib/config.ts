@@ -6,6 +6,12 @@ export const MODEL = "claude-opus-5";
 // title is disposable metadata, not analysis, so it does not warrant Opus cost.
 export const TITLE_MODEL = "claude-haiku-4-5-20251001";
 
+// Translation between two high-resource languages is mechanical work, and it
+// runs over every piece of text the app generates. Opus costs five times as
+// much per token and is not better at it. The record is never translated —
+// only the display copy — so this model choice cannot affect the corpus.
+export const TRANSLATION_MODEL = "claude-haiku-4-5-20251001";
+
 // Capture surface for dreams recorded in the app (spoken into rehm).
 export const CAPTURE_METHOD = "voice-rehm";
 

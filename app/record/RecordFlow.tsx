@@ -4,14 +4,21 @@ import { useCallback, useState } from "react";
 import Link from "next/link";
 import RestatementLoop from "@/app/components/RestatementLoop";
 import { useDictation } from "@/lib/useDictation";
+import { dict } from "@/lib/i18n";
+import type { Lang } from "@/lib/lang";
 
 export default function RecordFlow({
   sequenceNo,
   today,
+  speakLang,
+  viewLang,
 }: {
   sequenceNo: number;
   today: string;
+  speakLang: Lang;
+  viewLang: Lang;
 }) {
+  const t = dict(viewLang);
   const [transcript, setTranscript] = useState("");
   const [dreamtOn, setDreamtOn] = useState(today);
   const [busy, setBusy] = useState(false);
@@ -23,12 +30,12 @@ export default function RecordFlow({
   const appendHeard = useCallback((heard: string) => {
     setTranscript((prev) => (prev ? prev + " " : "") + heard);
   }, []);
-  const dictation = useDictation(appendHeard);
+  const dictation = useDictation(appendHeard, speakLang);
 
   async function submitCapture() {
     setError(null);
     if (!transcript.trim()) {
-      setError("Nothing recorded yet.");
+      setError(t.nothingRecordedError);
       return;
     }
     setBusy(true);
@@ -74,12 +81,12 @@ export default function RecordFlow({
       <p className="stamp" style={{ marginTop: 14 }}>
         Dream {sequenceNo}
       </p>
-      <label htmlFor="transcript">Talk. This is stored exactly as spoken.</label>
+      <label htmlFor="transcript">{t.talkThisIsStored}</label>
       <textarea
         id="transcript"
         value={transcript}
         onChange={(e) => setTranscript(e.target.value)}
-        placeholder="Speak or type the dream…"
+        placeholder={t.speakOrType}
       />
       {dictation.state !== "unsupported" && (
         <div style={{ marginTop: 10 }}>
@@ -89,16 +96,16 @@ export default function RecordFlow({
             onClick={dictation.toggle}
           >
             {dictation.state === "on"
-              ? "Stop dictation"
+              ? t.stopDictation
               : dictation.state === "starting"
-                ? "Starting…"
-                : "🎤 Dictate"}
+                ? t.starting
+                : `🎤 ${t.dictate}`}
           </button>
 
           {/* What it has heard but not yet committed — the proof it's live. */}
           {dictation.state === "on" && (
             <p className="stamp stamp-machine" style={{ marginTop: 10 }}>
-              {dictation.interim ? `hearing: ${dictation.interim}` : "listening…"}
+              {dictation.interim ? `${t.hearing}: ${dictation.interim}` : t.listening}
             </p>
           )}
 
@@ -114,12 +121,12 @@ export default function RecordFlow({
       {dictation.keyboardMic && (
         <p className="machine" style={{ marginTop: 10 }}>
           {dictation.state === "unsupported"
-            ? "To talk this in, tap into the box and use the microphone key on your keyboard."
-            : "Two ways to talk this in: the button above, or tap into the box and use the microphone key on your keyboard. If one gives you trouble, try the other."}
+            ? t.keyboardMicOnly
+            : t.twoWaysToTalk}
         </p>
       )}
 
-      <label htmlFor="dreamt_on">Date dreamt</label>
+      <label htmlFor="dreamt_on">{t.dateDreamt}</label>
       <input
         id="dreamt_on"
         type="date"
@@ -132,7 +139,7 @@ export default function RecordFlow({
 
       <div style={{ marginTop: 18 }}>
         <button className="btn btn-primary btn-block btn-lg" onClick={submitCapture} disabled={busy}>
-          {busy ? "Saving…" : "Submit — get a restatement"}
+          {busy ? t.saving : t.submitForRestatement}
         </button>
       </div>
     </div>

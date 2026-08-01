@@ -47,6 +47,20 @@ export async function DELETE(
       // an ordinary SELECT so it propagates reliably through the Neon HTTP
       // transaction batch.
       sql`SELECT set_config('rehm.allow_delete', 'on', true)`,
+      // Translations first, while their sources still exist to be found by.
+      // There is no cascade here on purpose: translations point at six
+      // different tables, so the reference is loose and this is what keeps it
+      // honest. Missing one would leave a row pointing at nothing.
+      sql`DELETE FROM translations
+          WHERE (source_type IN ('dream', 'title') AND source_id = ${dreamId})
+             OR (source_type = 'addendum' AND source_id IN
+                   (SELECT id FROM dream_addenda WHERE dream_id = ${dreamId}))
+             OR (source_type = 'restatement' AND source_id IN
+                   (SELECT id FROM restatements WHERE dream_id = ${dreamId}))
+             OR (source_type = 'analysis' AND source_id IN
+                   (SELECT id FROM analyses WHERE dream_id = ${dreamId}))
+             OR (source_type = 'trend_claim' AND source_id IN
+                   (SELECT id FROM trend_claims WHERE ${dreamId}::uuid = ANY (dream_ids)))`,
       // Children first (FKs to dreams are RESTRICT, not CASCADE).
       sql`DELETE FROM taggings WHERE dream_id = ${dreamId}`,
       sql`DELETE FROM trend_claims WHERE ${dreamId}::uuid = ANY (dream_ids)`,

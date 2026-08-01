@@ -2,6 +2,8 @@ import Link from "next/link";
 import { requireUserId } from "@/lib/session";
 import { listDreams } from "@/lib/queries";
 import { buildCorpus, formatDayShort } from "@/lib/corpus";
+import { resolveView } from "@/lib/viewLang";
+import { loadTranslations, display } from "@/lib/translations";
 
 export const dynamic = "force-dynamic";
 
@@ -11,22 +13,34 @@ export const dynamic = "force-dynamic";
 // and where the silences are — before anything derived from it.
 export default async function Home() {
   const userId = await requireUserId();
+  const view = await resolveView(userId);
+  const t = view.t;
   const dreams = await listDreams(userId);
   const corpus = buildCorpus(dreams);
 
   const latest = dreams[0] ?? null;
+  // Only the newest dream's words appear here, so only its title and transcript
+  // need looking up. Empty map on a single-language account, which renders the
+  // originals — the correct fallback in every case.
+  const tr = latest
+    ? await loadTranslations(userId, view.lang, [
+        { type: "title", id: latest.id },
+        { type: "dream", id: latest.id },
+      ])
+    : new Map<string, string>();
+  const latestTitle = latest ? display(latest.title, tr, "title", latest.id) : null;
+  const latestSnippet = latest ? display(latest.snippet, tr, "dream", latest.id) : null;
   const unanalyzed = dreams.filter((d) => d.analysisCount === 0).length;
 
   return (
     <main>
       <Link href="/record" className="btn btn-primary btn-block btn-lg">
-        Record a dream
+        {t.recordADream}
       </Link>
 
       {dreams.length === 0 ? (
         <p className="said" style={{ marginTop: 40 }}>
-          Nothing recorded yet. The first one can be a fragment — a room, a face,
-          the one image that stayed.
+          {t.nothingRecordedYet}
         </p>
       ) : (
         <>
@@ -40,21 +54,25 @@ export default async function Home() {
               <span className="lede-seq">
                 {String(latest.sequenceNo).padStart(2, "0")}
               </span>
-              <div className="said-title">{latest.title}</div>
-              <div className="said lede-excerpt">{latest.snippet}</div>
+              <div className="said-title">{latestTitle?.text}</div>
+              <div className={latestSnippet?.translated ? "machine lede-excerpt" : "said lede-excerpt"}>
+                {latestSnippet?.text}
+              </div>
             </Link>
           )}
 
           {corpus.ticks.length > 0 && (
             <>
               <div className="timeline">
-                {corpus.ticks.map((t) => (
+                {corpus.ticks.map((tick) => (
                   <Link
-                    key={t.id}
-                    href={`/dreams/${t.id}`}
-                    className={t.analyzed ? "tick" : "tick tick-open"}
-                    style={{ left: `${t.pct}%` }}
-                    aria-label={`Dream ${t.sequenceNo}, ${t.date}${t.analyzed ? "" : ", not analyzed"}`}
+                    key={tick.id}
+                    href={`/dreams/${tick.id}`}
+                    className={tick.analyzed ? "tick" : "tick tick-open"}
+                    style={{ left: `${tick.pct}%` }}
+                    aria-label={`${tick.sequenceNo} · ${tick.date}${
+                      tick.analyzed ? "" : ` · ${t.notAnalyzed}`
+                    }`}
                   />
                 ))}
               </div>
@@ -64,8 +82,8 @@ export default async function Home() {
                   {formatDayShort(corpus.lastDate as string)}
                 </span>
                 <span className="stamp">
-                  {corpus.spanDays} day{corpus.spanDays === 1 ? "" : "s"}
-                  {corpus.undated > 0 ? ` · ${corpus.undated} undated` : ""}
+                  {corpus.spanDays === null ? "—" : t.days(corpus.spanDays)}
+                  {corpus.undated > 0 ? ` · ${t.undated(corpus.undated)}` : ""}
                 </span>
               </div>
             </>
@@ -74,27 +92,25 @@ export default async function Home() {
           <div className="figures">
             <div>
               <div className="figure-value">{dreams.length}</div>
-              <div className="figure-label">
-                dream{dreams.length === 1 ? "" : "s"} recorded
-              </div>
+              <div className="figure-label">{t.dreamsRecorded(dreams.length)}</div>
             </div>
             <div>
               <div className="figure-value">
                 {corpus.daysSinceLast === null ? "—" : corpus.daysSinceLast}
               </div>
-              <div className="figure-label">days since the last one</div>
+              <div className="figure-label">{t.daysSinceLast}</div>
             </div>
             <div>
               <div className="figure-value">
                 {corpus.longestGap === null ? "—" : corpus.longestGap}
               </div>
-              <div className="figure-label">days, longest gap</div>
+              <div className="figure-label">{t.longestGap}</div>
             </div>
           </div>
 
           {unanalyzed > 0 && (
             <Link href="/dreams?show=unanalyzed" className="unresolved">
-              {unanalyzed} dream{unanalyzed === 1 ? "" : "s"} not analyzed
+              {t.notAnalyzedCount(unanalyzed)}
             </Link>
           )}
         </>

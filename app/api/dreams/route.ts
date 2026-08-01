@@ -5,6 +5,7 @@ import { RESTATEMENT_PROMPT_VERSION } from "@/lib/prompts";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { getUserAnthropic, markKeyVerified } from "@/lib/keys";
 import { generateTitle } from "@/lib/titles";
+import { prepareCounterpart } from "@/lib/translations";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -79,6 +80,16 @@ export async function POST(req: NextRequest) {
     VALUES (${dream.id}, ${MODEL}, ${RESTATEMENT_PROMPT_VERSION}, false)
     RETURNING id
   `) as Array<{ id: string }>;
+
+  // Prepare the other language now, while the text is new, so the toggle is
+  // instant rather than a spinner when someone is handed the phone. No-op on a
+  // single-language account. The dream is already saved; this cannot fail it.
+  await prepareCounterpart(userId, [
+    { type: "dream", id: dream.id, text: rawTranscript },
+    ...(titleResult
+      ? [{ type: "title" as const, id: dream.id, text: titleResult.title }]
+      : []),
+  ]);
 
   return NextResponse.json({
     dreamId: dream.id,

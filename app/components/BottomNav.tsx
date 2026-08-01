@@ -7,11 +7,20 @@ import { usePathname } from "next/navigation";
 // session and have nowhere to navigate to.
 const HIDE_ON = ["/login", "/signup"];
 
+// Labels are passed in rather than hardcoded: the nav is a client component,
+// and the dictionary lives on the server with the resolved view language.
+export type NavLabels = {
+  home: string;
+  dreams: string;
+  trends: string;
+  settings: string;
+};
+
 const TABS = [
-  { href: "/", label: "Home", icon: "home" },
-  { href: "/dreams", label: "Dreams", icon: "moon" },
-  { href: "/trends", label: "Trends", icon: "trend" },
-  { href: "/settings", label: "Settings", icon: "gear" },
+  { href: "/", key: "home", icon: "home" },
+  { href: "/dreams", key: "dreams", icon: "moon" },
+  { href: "/trends", key: "trends", icon: "trend" },
+  { href: "/settings", key: "settings", icon: "gear" },
 ] as const;
 
 function Icon({ name }: { name: (typeof TABS)[number]["icon"] }) {
@@ -61,7 +70,7 @@ function Icon({ name }: { name: (typeof TABS)[number]["icon"] }) {
   }
 }
 
-export default function BottomNav() {
+export default function BottomNav({ labels }: { labels: NavLabels }) {
   const pathname = usePathname() || "/";
   if (HIDE_ON.some((p) => pathname.startsWith(p))) return null;
 
@@ -78,7 +87,7 @@ export default function BottomNav() {
             aria-current={active ? "page" : undefined}
           >
             <Icon name={tab.icon} />
-            <span>{tab.label}</span>
+            <span>{labels[tab.key]}</span>
           </Link>
         );
       })}

@@ -1,4 +1,5 @@
 export type Addendum = {
+  id: string;
   addendumNo: number;
   body: string;
   capturedAt: string;

@@ -271,10 +271,11 @@ export async function getAddenda(dreamId: string): Promise<Addendum[]> {
   const sql = getSql();
   try {
     const rows = (await sql`
-      SELECT addendum_no, body, captured_at FROM dream_addenda
+      SELECT id, addendum_no, body, captured_at FROM dream_addenda
       WHERE dream_id = ${dreamId} ORDER BY addendum_no ASC
     `) as Array<Record<string, unknown>>;
     return rows.map((r) => ({
+      id: String(r.id),
       addendumNo: toInt(r.addendum_no),
       body: String(r.body),
       capturedAt: toIso(r.captured_at) ?? "",
@@ -292,7 +293,7 @@ export async function addendaByDream(userId: string): Promise<Map<string, Addend
   const out = new Map<string, Addendum[]>();
   try {
     const rows = (await sql`
-      SELECT a.dream_id, a.addendum_no, a.body, a.captured_at
+      SELECT a.id, a.dream_id, a.addendum_no, a.body, a.captured_at
       FROM dream_addenda a JOIN dreams d ON d.id = a.dream_id
       WHERE d.user_id = ${userId}
       ORDER BY a.addendum_no ASC
@@ -301,6 +302,7 @@ export async function addendaByDream(userId: string): Promise<Map<string, Addend
       const key = String(r.dream_id);
       const list = out.get(key) ?? [];
       list.push({
+        id: String(r.id),
         addendumNo: toInt(r.addendum_no),
         body: String(r.body),
         capturedAt: toIso(r.captured_at) ?? "",
@@ -401,7 +403,7 @@ export async function getAnalyses(dreamId: string): Promise<Analysis[]> {
 }
 
 export type Citation = { number: number; id: string };
-export type TrendClaim = { claim: string; citations: Citation[] };
+export type TrendClaim = { id: string; claim: string; citations: Citation[] };
 export type TrendRun = {
   id: string;
   corpusSize: number;
@@ -448,7 +450,7 @@ export async function listTrendRuns(userId: string): Promise<TrendRun[]> {
   for (const r of runRows) {
     const runId = String(r.id);
     const claimRows = (await sql`
-      SELECT claim, dream_ids FROM trend_claims
+      SELECT id, claim, dream_ids FROM trend_claims
       WHERE trend_run_id = ${runId} ORDER BY created_at ASC
     `) as Array<Record<string, unknown>>;
     const claims: TrendClaim[] = claimRows.map((c) => {
@@ -459,7 +461,7 @@ export async function listTrendRuns(userId: string): Promise<TrendRun[]> {
         .map((id) => ({ id, number: seqById.get(id) }))
         .filter((c): c is Citation => typeof c.number === "number")
         .sort((a, b) => a.number - b.number);
-      return { claim: String(c.claim), citations };
+      return { id: String(c.id), claim: String(c.claim), citations };
     });
     runs.push({
       id: runId,

@@ -5,6 +5,7 @@ import { MODEL } from "@/lib/config";
 import { ANALYSIS_PROMPT, ANALYSIS_PROMPT_VERSION } from "@/lib/prompts";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { getUserAnthropic, markKeyVerified } from "@/lib/keys";
+import { prepareCounterpart } from "@/lib/translations";
 import { userFacingAnthropicError } from "@/lib/errors";
 import { getAddenda } from "@/lib/queries";
 import { composeDreamText } from "@/lib/dreamText";
@@ -83,6 +84,12 @@ export async function POST(
     VALUES (${userId}, 'analysis', ${usage.input}, ${usage.output})
   `;
   await markKeyVerified(got.keyId);
+
+  // Prepare the other language while the text is fresh, so the toggle stays
+  // instant. No-op unless this account prepares both.
+  await prepareCounterpart(userId, [
+    { type: "analysis", id: row.id, text: analysis },
+  ]);
 
   return NextResponse.json({ id: row.id });
 }

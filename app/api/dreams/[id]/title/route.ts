@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSql } from "@/lib/db";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { prepareCounterpart } from "@/lib/translations";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Renaming may re-translate the title, which calls the model.
+export const maxDuration = 60;
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -43,6 +46,18 @@ export async function PATCH(
     ON CONFLICT (dream_id)
     DO UPDATE SET title = EXCLUDED.title, source = 'edited', updated_at = now()
   `;
+
+  // A rename makes any stored translation of the old title wrong. Translations
+  // are immutable, so the correction is retire-then-write, not an edit. Losing
+  // the row is safe: an absent translation falls back to showing the original.
+  try {
+    await sql`
+      DELETE FROM translations WHERE source_type = 'title' AND source_id = ${dreamId}
+    `;
+  } catch (err) {
+    console.error("[rehm] stale title translation not cleared:", err);
+  }
+  await prepareCounterpart(userId, [{ type: "title", id: dreamId, text: title }]);
 
   return NextResponse.json({ ok: true, title });
 }

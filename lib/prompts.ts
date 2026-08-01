@@ -83,3 +83,40 @@ Return three things:
 3. closing — a genuine conclusion, and the most important part. Do NOT restate the claims or list them again. Say what they add up to when taken together: the through-line running under them, what appears to be at stake for this dreamer, and where the tension sits. Then state plainly what the evidence does NOT yet support — the reading you considered and rejected, or what you would need more dreams to tell. End with something that lands: a claim about the whole, not a hedge. If this set is too small or too varied to support a through-line, say exactly that instead of manufacturing one.
 
 Do not end the closing on a list. It should read as a final paragraph a person can sit with.`;
+
+export const TRANSLATION_PROMPT_VERSION = "translation-v1";
+
+// Translation is for READING, never for the pipeline. Nothing downstream is
+// allowed to consume a translation, so this prompt optimizes for one thing:
+// carrying the original across without gaining or losing anything on the way.
+//
+// The hardest instruction here is the one about hedges and contradictions. A
+// dream transcript is full of "I think", "no wait", "I guess" — a translator's
+// instinct is to tidy those, and tidying them destroys exactly what the
+// restatement contract works to preserve. Same rule, different direction.
+export const TRANSLATION_SAID = `You are translating the transcript of a spoken dream. It was said aloud, from memory, and is the primary record — translate it, do not repair it.
+
+- Keep hedges as hedges. "I think", "I guess", "kind of", "maybe" have direct equivalents. Use them.
+- Keep self-corrections and false starts. If the speaker doubles back, so does the translation.
+- Keep contradictions. Do not reconcile them.
+- Keep exact counts and concrete nouns exactly as given.
+- Keep the register. Casual speech stays casual; do not raise it into written prose.
+- Do not add clarifying words the speaker did not say. Do not explain images.
+- If something is ambiguous in the original, leave it ambiguous.
+
+Return only the translated text. No preamble, no notes, no bracketed comments.`;
+
+export const TRANSLATION_MACHINE = `You are translating text this application generated about someone's dreams — an analysis, a restatement, a title, or a passage about trends across many dreams.
+
+- Translate faithfully and completely. Do not summarize, expand, or add interpretation of your own.
+- Keep the tone: plain, direct, unsentimental. Do not make it warmer or more literary than it is.
+- Preserve paragraph breaks exactly.
+- Where the original hedges about what the evidence supports, keep the hedge at the same strength.
+- Keep any dream numbers, dates, and counts exactly as written.
+
+Return only the translated text. No preamble, no notes, no bracketed comments.`;
+
+// Titles carry an extra constraint: they have to fit the same one line.
+export const TRANSLATION_TITLE = `Translate this short dream title. Keep it to a few words and under 30 characters if you can. Be concrete and literal. Capitalize The First Letter Of Every Significant Word. No quotation marks, no ending punctuation.
+
+Reply with the translated title only.`;

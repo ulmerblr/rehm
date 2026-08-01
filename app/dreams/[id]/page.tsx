@@ -9,6 +9,8 @@ import DreamActions from "./DreamActions";
 import DeleteDream from "./DeleteDream";
 import EditableTitle from "./EditableTitle";
 import AddAddendum from "./AddAddendum";
+import { resolveView } from "@/lib/viewLang";
+import { loadTranslations, display } from "@/lib/translations";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +30,21 @@ export default async function DreamPage({
     getAddenda(dream.id),
   ]);
 
+  const view = await resolveView(userId);
+  const t = view.t;
+
+  const tr = await loadTranslations(userId, view.lang, [
+    { type: "title", id: dream.id },
+    { type: "dream", id: dream.id },
+    ...addenda.map((a) => ({ type: "addendum" as const, id: a.id })),
+    ...(restatement ? [{ type: "restatement" as const, id: restatement.id }] : []),
+    ...analyses.map((a) => ({ type: "analysis" as const, id: a.id })),
+  ]);
+
+  const transcript = display(dream.rawTranscript, tr, "dream", dream.id);
+
+  // The export is the record, so it is always the original. A translation is a
+  // reading aid; handing one to someone as "the transcript" would be a lie.
   const exportText = buildExport(dream, restatement, analyses, addenda);
 
   return (
@@ -47,12 +64,22 @@ export default async function DreamPage({
         dreamId={dream.id}
         initialTitle={dream.title}
         isCustom={dream.titleIsCustom}
+        displayTitle={display(dream.title, tr, "title", dream.id).text}
+        translatedNote={t.machineTranslation}
       />
 
-      {/* Testimony. First, largest, unadorned — it is the document. */}
-      <div className="testimony" style={{ marginTop: 22 }}>
-        {dream.rawTranscript}
+      {/* Testimony. First, largest, unadorned — it is the document.
+          When it is being shown translated it drops out of the serif: those
+          are not the words that were said, and the type says so. */}
+      <div
+        className={transcript.translated ? "machine" : "testimony"}
+        style={{ marginTop: 22, whiteSpace: transcript.translated ? "pre-wrap" : undefined }}
+      >
+        {transcript.text}
       </div>
+      {transcript.translated && (
+        <span className="stamp stamp-machine translated-note">{t.machineTranslation}</span>
+      )}
 
       {addenda.length > 0 && (
         <div className="stack" style={{ marginTop: 26 }}>
@@ -61,7 +88,19 @@ export default async function DreamPage({
               <div className="stamp" style={{ marginBottom: 6 }}>
                 added {a.capturedAt ? formatStamp(a.capturedAt) : "later"}
               </div>
-              <div className="testimony">{a.body}</div>
+              {(() => {
+                const body = display(a.body, tr, "addendum", a.id);
+                return (
+                  <>
+                    <div className={body.translated ? "machine" : "testimony"}>{body.text}</div>
+                    {body.translated && (
+                      <span className="stamp stamp-machine translated-note">
+                        {t.machineTranslation}
+                      </span>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           ))}
         </div>
@@ -71,7 +110,7 @@ export default async function DreamPage({
         <AddAddendum dreamId={dream.id} />
       </div>
 
-      <h2>Restatement</h2>
+      <h2>{t.restatement}</h2>
       {restatement && restatement.accepted ? (
         <>
           <div className="derived">
@@ -79,7 +118,7 @@ export default async function DreamPage({
               {restatement.model} · {restatement.promptVersion} · accepted
             </div>
             <div className="machine" style={{ whiteSpace: "pre-wrap" }}>
-              {restatement.latestProposal}
+              {display(restatement.latestProposal ?? "", tr, "restatement", restatement.id).text}
             </div>
           </div>
 
@@ -126,7 +165,7 @@ export default async function DreamPage({
       <DreamActions dreamId={dream.id} />
       <div className="stack" style={{ marginTop: 18 }}>
         {analyses.length === 0 ? (
-          <p className="stamp stamp-flag">not analyzed</p>
+          <p className="stamp stamp-flag">{t.notAnalyzed}</p>
         ) : (
           analyses.map((a) => (
             <div key={a.id} className="derived">
@@ -135,7 +174,7 @@ export default async function DreamPage({
                 {a.blind ? " · blind" : ""}
               </div>
               <div className="machine" style={{ whiteSpace: "pre-wrap" }}>
-                {a.body}
+                {display(a.body, tr, "analysis", a.id).text}
               </div>
             </div>
           ))

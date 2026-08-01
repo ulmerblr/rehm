@@ -24,7 +24,11 @@ const plexMono = IBM_Plex_Mono({
   display: "swap",
 });
 import { ensureMigrated, type MigrateResult } from "@/lib/migrate";
-import BottomNav from "@/app/components/BottomNav";
+import Nav from "@/app/components/Nav";
+import { cookies } from "next/headers";
+import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { resolveView } from "@/lib/viewLang";
+import { DEFAULT_LANG, type Lang } from "@/lib/lang";
 import AppBar from "@/app/components/AppBar";
 
 export const metadata: Metadata = {
@@ -115,8 +119,22 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const migration = await autoMigrate();
+
+  // The document's language has to follow the view, not the account: it drives
+  // hyphenation, screen-reader pronunciation, and the browser's own offer to
+  // translate the page. Getting it wrong makes a Spanish screen read aloud in
+  // an English voice.
+  let htmlLang: Lang = DEFAULT_LANG;
+  try {
+    const store = await cookies();
+    const userId = await verifySession(store.get(SESSION_COOKIE)?.value);
+    if (userId) htmlLang = (await resolveView(userId)).lang;
+  } catch {
+    // Signed out, or the lookup failed — the default is correct either way.
+  }
+
   return (
-    <html lang="en" className={`${spectral.variable} ${archivo.variable} ${plexMono.variable}`}>
+    <html lang={htmlLang} className={`${spectral.variable} ${archivo.variable} ${plexMono.variable}`}>
       <body>
         <AppBar />
         <div className="container">
@@ -129,7 +147,7 @@ export default async function RootLayout({
           )}
           {children}
         </div>
-        <BottomNav />
+        <Nav />
       </body>
     </html>
   );

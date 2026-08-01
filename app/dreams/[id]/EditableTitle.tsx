@@ -13,10 +13,16 @@ export default function EditableTitle({
   dreamId,
   initialTitle,
   isCustom,
+  displayTitle,
+  translatedNote,
 }: {
   dreamId: string;
   initialTitle: string;
   isCustom: boolean;
+  /** What to show while not editing — the translation, when one is on screen. */
+  displayTitle?: string;
+  /** Label marking the shown title as machine words, if it is. */
+  translatedNote?: string;
 }) {
   const router = useRouter();
   const [title, setTitle] = useState(initialTitle);
@@ -29,6 +35,8 @@ export default function EditableTitle({
 
   function openEditor() {
     // Only carry the text over when it's a real saved title, not a preview.
+    // Deliberately `title`, not the displayed translation. Saving what's on
+    // screen would overwrite the real title with a machine rendering of it.
     setDraft(saved ? title : "");
     setEditing(true);
     setError(null);
@@ -119,12 +127,21 @@ export default function EditableTitle({
     );
   }
 
+  // While a translation is on screen it is what gets read; `title` remains the
+  // real one underneath, and is what the editor opens with.
+  const shown = displayTitle ?? title;
+
   return (
-    <div className="row" style={{ gap: 10, marginTop: 4, alignItems: "baseline" }}>
-      <span style={{ fontSize: "1.15rem", fontWeight: 600 }}>{title}</span>
-      <button className="linklike" onClick={openEditor}>
-        {saved ? "Edit" : "Add a title"}
-      </button>
+    <div>
+      <div className="row" style={{ gap: 10, marginTop: 4, alignItems: "baseline" }}>
+        <span style={{ fontSize: "1.15rem", fontWeight: 600 }}>{shown}</span>
+        <button className="linklike" onClick={openEditor}>
+          {saved ? "Edit" : "Add a title"}
+        </button>
+      </div>
+      {translatedNote && shown !== title && (
+        <span className="stamp stamp-machine translated-note">{translatedNote}</span>
+      )}
     </div>
   );
 }

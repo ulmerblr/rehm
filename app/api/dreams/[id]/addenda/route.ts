@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSql } from "@/lib/db";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
+import { prepareCounterpart } from "@/lib/translations";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Adding to a dream may translate the addition, which calls the model.
+export const maxDuration = 60;
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -52,6 +55,10 @@ export async function POST(
     VALUES (${dreamId}, ${Number(next)}, ${body})
     RETURNING id, addendum_no, captured_at
   `) as Array<Record<string, unknown>>;
+
+  await prepareCounterpart(userId, [
+    { type: "addendum", id: String(row.id), text: body },
+  ]);
 
   return NextResponse.json({
     ok: true,
