@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireUserId } from "@/lib/session";
-import { listTrendRuns, type TrendRun } from "@/lib/queries";
+import { listTrendRuns, listDreamDates, type TrendRun } from "@/lib/queries";
 import ExportButton from "@/app/components/ExportButton";
 import Header from "@/app/components/Header";
 import TrendRunner from "./TrendRunner";
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function Trends() {
   const userId = await requireUserId();
-  const runs = await listTrendRuns(userId);
+  const [runs, dreams] = await Promise.all([listTrendRuns(userId), listDreamDates(userId)]);
 
   return (
     <main>
@@ -19,21 +19,27 @@ export default async function Trends() {
         <Link href="/">← Dreams</Link>
       </div>
       <p className="muted">
-        One pass over your whole corpus. Every claim cites the dreams it rests on. Past runs are
-        kept and never overwritten.
+        Choose how much of the corpus to read. Every claim cites the dreams it rests on. Past runs
+        are kept and never overwritten.
       </p>
 
       <div style={{ margin: "18px 0" }}>
-        <TrendRunner />
+        {dreams.length === 0 ? (
+          <p className="muted">Record a dream first — there is nothing to look across yet.</p>
+        ) : (
+          <TrendRunner dreams={dreams} />
+        )}
       </div>
 
+      {runs.length > 0 && <h2>Past runs</h2>}
       {runs.length === 0 ? (
         <p className="muted">No trend runs yet.</p>
       ) : (
         runs.map((run) => (
           <div key={run.id} className="card">
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>{run.scopeLabel}</div>
             <div>
-              <span className="tag">corpus: {run.corpusSize}</span>
+              <span className="tag">{run.corpusSize} dreams read</span>
               <span className="tag">model: {run.model}</span>
               <span className="tag">prompt: {run.promptVersion}</span>
             </div>
@@ -74,7 +80,7 @@ export default async function Trends() {
 function buildTrendExport(run: TrendRun): string {
   const parts: string[] = [];
   parts.push(
-    `TREND RUN ${run.createdAt} (model=${run.model}, prompt_version=${run.promptVersion}, corpus_size=${run.corpusSize})`
+    `TREND RUN ${run.createdAt} — ${run.scopeLabel} (model=${run.model}, prompt_version=${run.promptVersion}, corpus_size=${run.corpusSize})`
   );
   if (run.body) {
     parts.push("");

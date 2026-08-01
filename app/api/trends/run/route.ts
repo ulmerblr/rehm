@@ -6,6 +6,7 @@ import { TREND_PROMPT, TREND_PROMPT_VERSION } from "@/lib/prompts";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth";
 import { getUserAnthropic, markKeyVerified } from "@/lib/keys";
 import { userFacingAnthropicError } from "@/lib/errors";
+import { parseScope, scopeLabel, selectInScope } from "@/lib/scope";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,32 +32,62 @@ const SCHEMA = {
   required: ["summary", "claims"],
 } as const;
 
-// One pass over the session user's whole corpus. Every claim must cite the
-// dreams it rests on; claims without citations are dropped (the DB CHECK also
-// enforces non-empty). Prior runs are never touched.
+// One pass over a chosen slice of the session user's corpus — everything, the
+// last N dreams, or a date range. Every claim must cite the dreams it rests on;
+// claims without citations are dropped (the DB CHECK also enforces non-empty).
+// Prior runs are never touched, and the scope is recorded on the run so an old
+// run stays interpretable.
 export async function POST(req: NextRequest) {
   const userId = await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
   if (!userId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
+  const body = (await req.json().catch(() => ({}))) as { scope?: unknown };
+  const parsed = parseScope(body.scope);
+  if ("error" in parsed) {
+    return NextResponse.json({ error: "scope", message: parsed.error }, { status: 400 });
+  }
+  const scope = parsed.scope;
+
   const sql = getSql();
-  const dreamRows = (await sql`
+  const allRows = (await sql`
     SELECT id, sequence_no, dreamt_on, raw_transcript
     FROM dreams WHERE user_id = ${userId} ORDER BY sequence_no ASC
   `) as Array<{ id: string; sequence_no: number; dreamt_on: unknown; raw_transcript: string }>;
 
-  const corpusSize = dreamRows.length;
-  if (corpusSize === 0) {
+  if (allRows.length === 0) {
     return NextResponse.json({ error: "no_dreams", message: "Record a dream first." }, { status: 400 });
   }
 
+  // Apply the scope with the same logic the client previews with, then restore
+  // ascending order so the model reads the corpus chronologically.
+  const scoped = selectInScope(
+    allRows.map((d) => ({
+      sequenceNo: Number(d.sequence_no),
+      dreamtOn:
+        d.dreamt_on instanceof Date
+          ? d.dreamt_on.toISOString().slice(0, 10)
+          : d.dreamt_on == null
+            ? null
+            : String(d.dreamt_on).slice(0, 10),
+      row: d,
+    })),
+    scope
+  ).sort((a, b) => a.sequenceNo - b.sequenceNo);
+
+  const corpusSize = scoped.length;
+  if (corpusSize === 0) {
+    return NextResponse.json(
+      { error: "empty_scope", message: "No dreams fall in that range." },
+      { status: 400 }
+    );
+  }
+
+  const label = scopeLabel(scope);
   const idBySeq = new Map<number, string>();
-  const corpusText = dreamRows
-    .map((d) => {
-      const seq = Number(d.sequence_no);
-      idBySeq.set(seq, String(d.id));
-      const date =
-        d.dreamt_on instanceof Date ? d.dreamt_on.toISOString().slice(0, 10) : String(d.dreamt_on ?? "");
-      return `Dream ${seq} (${date}):\n${d.raw_transcript}`;
+  const corpusText = scoped
+    .map(({ sequenceNo, dreamtOn, row }) => {
+      idBySeq.set(sequenceNo, String(row.id));
+      return `Dream ${sequenceNo} (${dreamtOn ?? "no date"}):\n${row.raw_transcript}`;
     })
     .join("\n\n---\n\n");
 
@@ -83,7 +114,7 @@ export async function POST(req: NextRequest) {
       messages: [
         {
           role: "user",
-          content: `Here is the full corpus of ${corpusSize} dream(s). Identify trends across them, citing dream numbers for every claim.\n\n${corpusText}`,
+          content: `Here are ${corpusSize} dream(s) — the slice of the corpus selected as "${label}". Identify trends across them, citing dream numbers for every claim. Dreams are numbered by their position in the full corpus, so the numbers may not start at 1.\n\n${corpusText}`,
         },
       ],
       output_config: { format: { type: "json_schema", schema: SCHEMA } },
@@ -128,8 +159,18 @@ export async function POST(req: NextRequest) {
   }
 
   const [run] = (await sql`
-    INSERT INTO trend_runs (user_id, corpus_size, model, prompt_version, body, input_tokens, output_tokens)
-    VALUES (${userId}, ${corpusSize}, ${MODEL}, ${TREND_PROMPT_VERSION}, ${summary}, ${usage.input}, ${usage.output})
+    INSERT INTO trend_runs (
+      user_id, corpus_size, model, prompt_version, body, input_tokens, output_tokens,
+      scope_kind, scope_label, scope_last_n, scope_from, scope_to
+    )
+    VALUES (
+      ${userId}, ${corpusSize}, ${MODEL}, ${TREND_PROMPT_VERSION}, ${summary},
+      ${usage.input}, ${usage.output},
+      ${scope.kind}, ${label},
+      ${scope.kind === "last_n" ? scope.lastN : null},
+      ${scope.kind === "range" ? scope.from : null},
+      ${scope.kind === "range" ? scope.to : null}
+    )
     RETURNING id
   `) as Array<{ id: string }>;
 

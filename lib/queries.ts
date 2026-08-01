@@ -97,6 +97,22 @@ export async function listDreams(userId: string): Promise<DreamListItem[]> {
   });
 }
 
+// Minimal (sequence_no, date) list for the trend scope picker: enough for the
+// client to preview how many dreams a scope covers without another round trip.
+export async function listDreamDates(
+  userId: string
+): Promise<Array<{ sequenceNo: number; dreamtOn: string | null }>> {
+  const sql = getSql();
+  const rows = (await sql`
+    SELECT sequence_no, dreamt_on FROM dreams WHERE user_id = ${userId}
+    ORDER BY sequence_no DESC
+  `) as Array<Record<string, unknown>>;
+  return rows.map((r) => ({
+    sequenceNo: toInt(r.sequence_no),
+    dreamtOn: toDateStr(r.dreamt_on),
+  }));
+}
+
 export async function nextSequenceNo(userId: string): Promise<number> {
   const sql = getSql();
   const [row] = (await sql`
@@ -225,6 +241,7 @@ export type TrendClaim = { claim: string; citations: Citation[] };
 export type TrendRun = {
   id: string;
   corpusSize: number;
+  scopeLabel: string;
   model: string;
   promptVersion: string;
   body: string | null;
@@ -234,11 +251,22 @@ export type TrendRun = {
 
 export async function listTrendRuns(userId: string): Promise<TrendRun[]> {
   const sql = getSql();
-  const runRows = (await sql`
-    SELECT id, corpus_size, model, prompt_version, body, created_at
-    FROM trend_runs WHERE user_id = ${userId}
-    ORDER BY created_at DESC
-  `) as Array<Record<string, unknown>>;
+  let runRows: Array<Record<string, unknown>>;
+  try {
+    runRows = (await sql`
+      SELECT id, corpus_size, scope_label, model, prompt_version, body, created_at
+      FROM trend_runs WHERE user_id = ${userId}
+      ORDER BY created_at DESC
+    `) as Array<Record<string, unknown>>;
+  } catch (err) {
+    if (!isMissingSchema(err)) throw err;
+    // scope columns not added yet — every existing run covered the whole corpus.
+    runRows = (await sql`
+      SELECT id, corpus_size, NULL AS scope_label, model, prompt_version, body, created_at
+      FROM trend_runs WHERE user_id = ${userId}
+      ORDER BY created_at DESC
+    `) as Array<Record<string, unknown>>;
+  }
   if (runRows.length === 0) return [];
 
   const dreamRows = (await sql`
@@ -267,6 +295,7 @@ export async function listTrendRuns(userId: string): Promise<TrendRun[]> {
     runs.push({
       id: runId,
       corpusSize: toInt(r.corpus_size),
+      scopeLabel: r.scope_label == null ? "All dreams" : String(r.scope_label),
       model: String(r.model),
       promptVersion: String(r.prompt_version),
       body: r.body == null ? null : String(r.body),

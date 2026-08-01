@@ -294,6 +294,56 @@ summary {
   white-space: nowrap;
 }
 
+/* Segmented control — mutually exclusive choices in one row. */
+.segmented {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.segment {
+  flex: 1;
+  min-height: 44px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.segment-on {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.segment:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Square +/- buttons for the "last N dreams" stepper. */
+.stepper {
+  min-width: 56px;
+  padding: 0;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+/* Compact button for inline presets. */
+.btn-sm {
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 0.9rem;
+  border-radius: 10px;
+}
+
 /* A button that reads as a text link (e.g. inline "Edit" / "Rename"). */
 .linklike {
   background: none;
