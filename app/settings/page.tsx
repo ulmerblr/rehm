@@ -3,6 +3,7 @@ import { requireUserId } from "@/lib/session";
 import { getActiveKeyInfo, getTokenTotal, getUserEmail } from "@/lib/queries";
 import Header from "@/app/components/Header";
 import KeyForm from "./KeyForm";
+import MigrateButton from "./MigrateButton";
 
 export const dynamic = "force-dynamic";
 
@@ -67,6 +68,13 @@ export default async function Settings() {
       <form method="post" action="/api/auth/logout" style={{ marginTop: 8 }}>
         <button className="btn" type="submit">Sign out</button>
       </form>
+
+      <h2>Maintenance</h2>
+      <p className="muted" style={{ marginTop: 0 }}>
+        Database migrations apply automatically on every deploy. This button is a
+        fallback — use it only if something looks off.
+      </p>
+      <MigrateButton />
     </main>
   );
 }

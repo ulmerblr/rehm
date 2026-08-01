@@ -1,10 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // The temporary /api/migrate route reads the committed migrations/ files at
-  // runtime; include them in that function's bundle.
+  // Migrations are read from disk at runtime — by instrumentation.ts at server
+  // boot (auto-migrate) and by the /api/migrate fallback. Static tracing can't
+  // see those dynamic fs reads, so include the migrations/ files in every
+  // server function's bundle.
   outputFileTracingIncludes: {
-    "/api/migrate": ["./migrations/**/*"],
+    "/**": ["./migrations/**/*"],
   },
 };
 
